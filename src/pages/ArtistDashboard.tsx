@@ -77,7 +77,7 @@ export default function ArtistDashboard() {
         .order('upload_date', { ascending: false });
 
       if (error) throw error;
-      setTracks(data || []);
+      setTracks((data as Track[]) || []);
     } catch (error) {
       console.error('Error fetching tracks:', error);
       toast({

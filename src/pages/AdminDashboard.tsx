@@ -122,7 +122,7 @@ export default function AdminDashboard() {
         .order('upload_date', { ascending: false });
 
       if (error) throw error;
-      setTracks(data || []);
+      setTracks((data as Track[]) || []);
     } catch (error) {
       console.error('Error fetching tracks:', error);
       toast({
@@ -141,7 +141,7 @@ export default function AdminDashboard() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setProfiles(data || []);
+      setProfiles((data as Profile[]) || []);
     } catch (error) {
       console.error('Error fetching profiles:', error);
       toast({
