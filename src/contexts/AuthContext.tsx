@@ -88,6 +88,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, name: string) => {
     try {
+      // Clean up any existing auth state first
+      await cleanupAuthState();
+      
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -100,6 +103,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
+        // Handle specific SMTP/email errors more gracefully
+        if (error.message.includes('Error sending confirmation email')) {
+          toast({
+            title: "Account created with email issue",
+            description: "Your account was created but confirmation email couldn't be sent. Try signing in directly or contact support.",
+            variant: "default"
+          });
+          return { error: null }; // Don't treat as complete failure
+        }
+        
         toast({
           title: "Sign up failed",
           description: error.message,
@@ -122,6 +135,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
+      // Clean up any existing auth state first
+      await cleanupAuthState();
+      
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -148,9 +164,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const cleanupAuthState = async () => {
+    try {
+      // Clear all auth-related storage
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Clear session storage too
+      if (typeof sessionStorage !== 'undefined') {
+        Object.keys(sessionStorage).forEach((key) => {
+          if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+            sessionStorage.removeItem(key);
+          }
+        });
+      }
+      
+      // Attempt global sign out
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+        console.log('Global signout failed, continuing...');
+      }
+    } catch (error) {
+      console.error('Cleanup error:', error);
+    }
+  };
+
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      await cleanupAuthState();
       setUser(null);
       setSession(null);
       setProfile(null);
@@ -158,6 +204,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: "Signed out",
         description: "You have been signed out successfully.",
       });
+      // Force page refresh to ensure clean state
+      window.location.href = '/';
     } catch (error) {
       console.error('Sign out error:', error);
     }
