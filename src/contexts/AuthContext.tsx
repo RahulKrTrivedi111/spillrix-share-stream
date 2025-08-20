@@ -50,15 +50,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (session?.user) {
           console.log('👤 User authenticated, fetching profile...');
-          // Fetch user profile - skip for now due to RLS policy issue
-          setProfile({
-            id: session.user.id,
-            email: session.user.email!,
-            name: session.user.user_metadata?.name || 'User',
-            role: 'artist', // Default role
-            created_at: session.user.created_at
-          });
-          console.log('✅ Profile set successfully');
+          // Fetch user profile from database
+          try {
+            const { data: profileData, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (error) {
+              console.error('Error fetching profile:', error);
+              // Set default profile if fetch fails
+              setProfile({
+                id: session.user.id,
+                email: session.user.email!,
+                name: session.user.user_metadata?.name || 'User',
+                role: 'artist',
+                created_at: session.user.created_at
+              });
+            } else {
+              setProfile(profileData);
+              console.log('✅ Profile fetched successfully:', profileData);
+            }
+          } catch (error) {
+            console.error('Profile fetch error:', error);
+          }
         } else {
           console.log('🚪 No user, clearing profile');
           setProfile(null);
