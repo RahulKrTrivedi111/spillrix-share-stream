@@ -14,7 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string | null
+          role: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id: string
+          name?: string | null
+          role?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          role?: string | null
+        }
+        Relationships: []
+      }
+      tracks: {
+        Row: {
+          artist_id: string | null
+          cover_art_url: string | null
+          created_at: string | null
+          duration: number | null
+          genre: string | null
+          id: string
+          music_file_url: string | null
+          status: string | null
+          title: string
+          upload_date: string | null
+        }
+        Insert: {
+          artist_id?: string | null
+          cover_art_url?: string | null
+          created_at?: string | null
+          duration?: number | null
+          genre?: string | null
+          id?: string
+          music_file_url?: string | null
+          status?: string | null
+          title: string
+          upload_date?: string | null
+        }
+        Update: {
+          artist_id?: string | null
+          cover_art_url?: string | null
+          created_at?: string | null
+          duration?: number | null
+          genre?: string | null
+          id?: string
+          music_file_url?: string | null
+          status?: string | null
+          title?: string
+          upload_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracks_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
