@@ -43,38 +43,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log(`🔄 Auth state change: ${event}`, session?.user?.id ? 'User ID: ' + session.user.id : 'No user');
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           console.log('👤 User authenticated, fetching profile...');
-          // Fetch user profile from database
-          try {
-            const { data: profileData, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (error) {
-              console.error('Error fetching profile:', error);
-              // Set default profile if fetch fails
-              setProfile({
-                id: session.user.id,
-                email: session.user.email!,
-                name: session.user.user_metadata?.name || 'User',
-                role: 'artist',
-                created_at: session.user.created_at
-              });
-            } else {
-              setProfile(profileData);
-              console.log('✅ Profile fetched successfully:', profileData);
+          // Defer profile fetching to prevent deadlock
+          setTimeout(async () => {
+            try {
+              const { data: profileData, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (error) {
+                console.error('Error fetching profile:', error);
+                // Set default profile if fetch fails
+                const defaultRole = session.user.email === 'linkpointtrivedi480@gmail.com' ? 'admin' : 'artist';
+                setProfile({
+                  id: session.user.id,
+                  email: session.user.email!,
+                  name: session.user.user_metadata?.name || 'User',
+                  role: defaultRole,
+                  created_at: session.user.created_at
+                });
+              } else {
+                setProfile(profileData);
+                console.log('✅ Profile fetched successfully:', profileData);
+              }
+            } catch (error) {
+              console.error('Profile fetch error:', error);
             }
-          } catch (error) {
-            console.error('Profile fetch error:', error);
-          }
+          }, 0);
         } else {
           console.log('🚪 No user, clearing profile');
           setProfile(null);

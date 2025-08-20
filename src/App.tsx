@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { AuthGuard } from "./components/auth/AuthGuard";
 import Landing from "./pages/Landing";
 import ArtistDashboard from "./pages/ArtistDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -21,8 +22,16 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Landing />} />
-            <Route path="/dashboard" element={<ArtistDashboard />} />
-            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/dashboard" element={
+              <AuthGuard requireAuth={true}>
+                <ArtistDashboard />
+              </AuthGuard>
+            } />
+            <Route path="/admin" element={
+              <AuthGuard requireAuth={true} requireAdmin={true}>
+                <AdminDashboard />
+              </AuthGuard>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

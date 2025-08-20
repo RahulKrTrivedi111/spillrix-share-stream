@@ -44,36 +44,43 @@ export default function ArtistDashboard() {
   const [coverArt, setCoverArt] = useState<File | null>(null);
 
   useEffect(() => {
-    fetchTracks();
-    
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('tracks-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tracks',
-          filter: `artist_id=eq.${profile?.id}`
-        },
-        () => {
-          fetchTracks();
-        }
-      )
-      .subscribe();
+    if (profile?.id) {
+      fetchTracks();
+      
+      // Set up real-time subscription
+      const channel = supabase
+        .channel('tracks-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'tracks',
+            filter: `artist_id=eq.${profile.id}`
+          },
+          () => {
+            fetchTracks();
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [profile?.id]);
 
   const fetchTracks = async () => {
+    if (!profile?.id) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('tracks')
         .select('*')
-        .eq('artist_id', profile?.id)
+        .eq('artist_id', profile.id)
         .order('upload_date', { ascending: false });
 
       if (error) throw error;
@@ -183,8 +190,10 @@ export default function ArtistDashboard() {
       setGenre('');
       setMusicFile(null);
       setCoverArt(null);
-      (document.getElementById('music-file') as HTMLInputElement).value = '';
-      (document.getElementById('cover-art') as HTMLInputElement).value = '';
+      const musicInput = document.getElementById('music-file') as HTMLInputElement;
+      const coverInput = document.getElementById('cover-art') as HTMLInputElement;
+      if (musicInput) musicInput.value = '';
+      if (coverInput) coverInput.value = '';
       
       fetchTracks();
     } catch (error) {
