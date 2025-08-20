@@ -71,15 +71,15 @@ export function AudioPlayer({ src, title, className = '' }: AudioPlayerProps) {
   };
 
   return (
-    <div className={`audio-player space-y-3 ${className}`}>
+    <div className={`audio-player space-y-2 md:space-y-3 ${className}`}>
       <audio ref={audioRef} src={src} preload="metadata" />
       
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3">
         <Button
           variant="ghost"
           size="sm"
           onClick={togglePlayPause}
-          className="h-8 w-8 p-0 hover:bg-primary/20"
+          className="h-10 w-10 md:h-8 md:w-8 p-0 hover:bg-primary/20 touch-target"
         >
           {isPlaying ? (
             <Pause className="h-4 w-4 text-primary" />
@@ -88,12 +88,12 @@ export function AudioPlayer({ src, title, className = '' }: AudioPlayerProps) {
           )}
         </Button>
         
-        <div className="flex-1 space-y-1">
-          <div className="text-sm font-medium text-foreground line-clamp-1">
+        <div className="flex-1 space-y-1 min-w-0">
+          <div className="text-sm md:text-xs font-medium text-foreground line-clamp-1">
             {title}
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground w-10">
+          <div className="flex items-center gap-1 md:gap-2">
+            <span className="text-xs text-muted-foreground w-8 md:w-10 text-center">
               {formatTime(currentTime)}
             </span>
             <Slider
@@ -101,15 +101,15 @@ export function AudioPlayer({ src, title, className = '' }: AudioPlayerProps) {
               max={duration}
               step={1}
               onValueChange={handleSeek}
-              className="flex-1"
+              className="flex-1 touch-target"
             />
-            <span className="text-xs text-muted-foreground w-10">
+            <span className="text-xs text-muted-foreground w-8 md:w-10 text-center">
               {formatTime(duration)}
             </span>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-2">
           <Volume2 className="h-4 w-4 text-muted-foreground" />
           <Slider
             value={[volume]}

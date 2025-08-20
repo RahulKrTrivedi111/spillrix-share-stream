@@ -46,55 +46,55 @@ export default function Landing() {
       <div className="min-h-screen hero-gradient">
         {/* Header */}
         <header className="border-b border-border/50 backdrop-blur-sm bg-background/80">
-          <div className="container mx-auto px-4 py-4">
+          <div className="mobile-container py-4">
             <Logo size="md" />
           </div>
         </header>
 
         {/* Hero Section */}
-        <div className="container mx-auto px-4 py-16">
+        <div className="mobile-container py-8 md:py-16">
           <div className="max-w-6xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="mobile-stack items-center text-center lg:text-left lg:grid lg:grid-cols-2 lg:gap-12">
               
               {/* Left Side - Hero Content */}
               <div className="space-y-8 smooth-enter">
                 <div className="space-y-4">
-                  <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                     <span className="bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
                       Spillrix
                     </span>
                     <br />
                     <span className="text-foreground">Distribution</span>
                   </h1>
-                  <p className="text-xl text-muted-foreground max-w-lg">
+                  <p className="text-lg md:text-xl text-muted-foreground max-w-lg mx-auto lg:mx-0">
                     Free music sharing for artists & listeners worldwide. 
                     Upload, discover, and share amazing music with the community.
                   </p>
                 </div>
 
                 {/* Features Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3 p-4 rounded-lg bg-card/50 border border-border/50">
-                    <Upload className="h-5 w-5 text-primary" />
-                    <span className="text-sm font-medium">Easy Upload</span>
+                <div className="mobile-grid">
+                  <div className="mobile-card touch-target">
+                    <Upload className="h-6 w-6 text-primary mb-2" />
+                    <span className="mobile-text font-medium">Easy Upload</span>
                   </div>
-                  <div className="flex items-center gap-3 p-4 rounded-lg bg-card/50 border border-border/50">
-                    <Users className="h-5 w-5 text-primary" />
-                    <span className="text-sm font-medium">Global Reach</span>
+                  <div className="mobile-card touch-target">
+                    <Users className="h-6 w-6 text-primary mb-2" />
+                    <span className="mobile-text font-medium">Global Reach</span>
                   </div>
-                  <div className="flex items-center gap-3 p-4 rounded-lg bg-card/50 border border-border/50">
-                    <Music className="h-5 w-5 text-primary" />
-                    <span className="text-sm font-medium">High Quality</span>
+                  <div className="mobile-card touch-target">
+                    <Music className="h-6 w-6 text-primary mb-2" />
+                    <span className="mobile-text font-medium">High Quality</span>
                   </div>
-                  <div className="flex items-center gap-3 p-4 rounded-lg bg-card/50 border border-border/50">
-                    <Shield className="h-5 w-5 text-primary" />
-                    <span className="text-sm font-medium">Secure</span>
+                  <div className="mobile-card touch-target">
+                    <Shield className="h-6 w-6 text-primary mb-2" />
+                    <span className="mobile-text font-medium">Secure</span>
                   </div>
                 </div>
               </div>
 
               {/* Right Side - Auth Form */}
-              <div className="flex justify-center lg:justify-end">
+              <div className="flex justify-center lg:justify-end w-full">
                 <Card className="w-full max-w-md glass-card">
                   <CardHeader className="text-center">
                     <CardTitle className="text-2xl">
@@ -109,7 +109,7 @@ export default function Landing() {
                   </CardHeader>
                   
                   <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-6">
                       {!isLogin && (
                         <div className="space-y-2">
                           <Label htmlFor="name">Full Name</Label>
@@ -153,7 +153,7 @@ export default function Landing() {
                       
                       <Button 
                         type="submit" 
-                        className="w-full btn-primary" 
+                        className="w-full btn-primary touch-target" 
                         size="lg"
                         disabled={loading}
                       >

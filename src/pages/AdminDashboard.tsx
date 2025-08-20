@@ -342,63 +342,63 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-background">
         {/* Header */}
         <header className="border-b border-border bg-card">
-          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="mobile-container py-4 flex items-center justify-between">
             <Logo size="md" />
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">Admin Panel</span>
-              <Button variant="outline" onClick={signOut} size="sm">
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+            <div className="flex items-center gap-2 md:gap-4">
+              <span className="hidden sm:inline text-sm text-muted-foreground">Admin Panel</span>
+              <Button variant="outline" onClick={signOut} size="sm" className="touch-target">
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Sign Out</span>
               </Button>
             </div>
           </div>
         </header>
 
-        <div className="container mx-auto px-4 py-8 space-y-8">
+        <div className="mobile-container py-6 md:py-8 space-y-6 md:space-y-8">
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
+          <div className="mobile-grid">
+            <Card className="mobile-card">
               <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <Music className="h-4 w-4 text-primary" />
+                <div className="flex flex-col items-center text-center gap-2">
+                  <Music className="h-6 w-6 text-primary" />
                   <div>
-                    <p className="text-2xl font-bold">{stats.totalTracks}</p>
+                    <p className="text-xl md:text-2xl font-bold">{stats.totalTracks}</p>
                     <p className="text-xs text-muted-foreground">Total Tracks</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="mobile-card">
               <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-warning" />
+                <div className="flex flex-col items-center text-center gap-2">
+                  <Clock className="h-6 w-6 text-warning" />
                   <div>
-                    <p className="text-2xl font-bold">{stats.pendingTracks}</p>
+                    <p className="text-xl md:text-2xl font-bold">{stats.pendingTracks}</p>
                     <p className="text-xs text-muted-foreground">Pending</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="mobile-card">
               <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-success" />
+                <div className="flex flex-col items-center text-center gap-2">
+                  <Check className="h-6 w-6 text-success" />
                   <div>
-                    <p className="text-2xl font-bold">{stats.approvedTracks}</p>
+                    <p className="text-xl md:text-2xl font-bold">{stats.approvedTracks}</p>
                     <p className="text-xs text-muted-foreground">Approved</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="mobile-card">
               <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" />
+                <div className="flex flex-col items-center text-center gap-2">
+                  <Users className="h-6 w-6 text-primary" />
                   <div>
-                    <p className="text-2xl font-bold">{stats.totalUsers}</p>
+                    <p className="text-xl md:text-2xl font-bold">{stats.totalUsers}</p>
                     <p className="text-xs text-muted-foreground">Total Users</p>
                   </div>
                 </div>
@@ -407,10 +407,11 @@ export default function AdminDashboard() {
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex gap-2">
+          <div className="mobile-stack sm:flex-row">
             <Button
               variant={activeTab === 'tracks' ? 'default' : 'outline'}
               onClick={() => setActiveTab('tracks')}
+              className="w-full sm:w-auto touch-target"
             >
               <Music className="h-4 w-4 mr-2" />
               Track Management
@@ -418,6 +419,7 @@ export default function AdminDashboard() {
             <Button
               variant={activeTab === 'users' ? 'default' : 'outline'}
               onClick={() => setActiveTab('users')}
+              className="w-full sm:w-auto touch-target"
             >
               <Users className="h-4 w-4 mr-2" />
               User Management
@@ -434,7 +436,7 @@ export default function AdminDashboard() {
                 </CardDescription>
                 
                 {/* Filters and Search */}
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className="mobile-stack">
                   <div className="flex-1">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -448,7 +450,7 @@ export default function AdminDashboard() {
                   </div>
                   
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue placeholder="Filter by status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -462,22 +464,24 @@ export default function AdminDashboard() {
 
                 {/* Bulk Actions */}
                 {selectedTracks.length > 0 && (
-                  <div className="flex gap-2 p-4 bg-muted rounded-lg">
-                    <span className="text-sm text-muted-foreground">
+                  <div className="space-y-3 p-4 bg-muted rounded-lg">
+                    <span className="text-sm text-muted-foreground block">
                       {selectedTracks.length} tracks selected
                     </span>
-                    <Button size="sm" onClick={() => bulkUpdateStatus('approved')}>
-                      <Check className="h-4 w-4 mr-1" />
-                      Approve All
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => bulkUpdateStatus('rejected')}>
-                      <X className="h-4 w-4 mr-1" />
-                      Reject All
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('pending')}>
-                      <Clock className="h-4 w-4 mr-1" />
-                      Set Pending
-                    </Button>
+                    <div className="mobile-stack sm:flex-row">
+                      <Button size="sm" onClick={() => bulkUpdateStatus('approved')} className="w-full sm:w-auto touch-target">
+                        <Check className="h-4 w-4 mr-1" />
+                        Approve All
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => bulkUpdateStatus('rejected')} className="w-full sm:w-auto touch-target">
+                        <X className="h-4 w-4 mr-1" />
+                        Reject All
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('pending')} className="w-full sm:w-auto touch-target">
+                        <Clock className="h-4 w-4 mr-1" />
+                        Set Pending
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardHeader>
@@ -488,8 +492,9 @@ export default function AdminDashboard() {
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
+                  <div className="overflow-x-auto -mx-4 sm:mx-0">
+                    <div className="min-w-full inline-block align-middle">
+                      <Table className="min-w-[1000px] sm:min-w-full">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-12">
@@ -527,16 +532,17 @@ export default function AdminDashboard() {
                               <AudioPlayer 
                                 src={track.music_file_url}
                                 title={track.title}
-                                className="min-w-[200px]"
+                                className="min-w-[250px] md:min-w-[200px]"
                               />
                             </TableCell>
                             <TableCell className="text-right">
-                              <div className="flex gap-1 justify-end">
+                              <div className="flex gap-1 justify-end flex-wrap">
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => updateTrackStatus(track.id, 'approved')}
-                                  className="text-success hover:bg-success hover:text-success-foreground"
+                                  className="text-success hover:bg-success hover:text-success-foreground touch-target"
+                                  title="Approve"
                                 >
                                   <Check className="h-4 w-4" />
                                 </Button>
@@ -544,7 +550,8 @@ export default function AdminDashboard() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => updateTrackStatus(track.id, 'rejected')}
-                                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground touch-target"
+                                  title="Reject"
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
@@ -552,6 +559,8 @@ export default function AdminDashboard() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => downloadTrack(track.music_file_url, `${track.title}.mp3`)}
+                                  className="touch-target"
+                                  title="Download"
                                 >
                                   <Download className="h-4 w-4" />
                                 </Button>
@@ -559,7 +568,8 @@ export default function AdminDashboard() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => deleteTrack(track.id)}
-                                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground touch-target"
+                                  title="Delete"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -568,7 +578,8 @@ export default function AdminDashboard() {
                           </TableRow>
                         ))}
                       </TableBody>
-                    </Table>
+                      </Table>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -589,8 +600,9 @@ export default function AdminDashboard() {
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
+                  <div className="overflow-x-auto -mx-4 sm:mx-0">
+                    <div className="min-w-full inline-block align-middle">
+                      <Table className="min-w-[600px] sm:min-w-full">
                       <TableHeader>
                         <TableRow>
                           <TableHead>Name</TableHead>
@@ -622,10 +634,11 @@ export default function AdminDashboard() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => toggleUserStatus(user.id, user.role)}
-                                  className={user.role === 'inactive' 
+                                  className={`touch-target ${user.role === 'inactive' 
                                     ? "text-success hover:bg-success hover:text-success-foreground" 
                                     : "text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                                  }
+                                  }`}
+                                  title={user.role === 'inactive' ? 'Reactivate User' : 'Deactivate User'}
                                 >
                                   {user.role === 'inactive' ? (
                                     <UserCheck className="h-4 w-4" />
@@ -638,7 +651,8 @@ export default function AdminDashboard() {
                           </TableRow>
                         ))}
                       </TableBody>
-                    </Table>
+                      </Table>
+                    </div>
                   </div>
                 )}
               </CardContent>

@@ -260,23 +260,23 @@ export default function ArtistDashboard() {
       <div className="min-h-screen bg-background">
         {/* Header */}
         <header className="border-b border-border bg-card">
-          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="mobile-container py-4 flex items-center justify-between">
             <Logo size="md" />
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">Welcome, {profile?.name}</span>
-              <Button variant="outline" onClick={signOut} size="sm">
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+            <div className="flex items-center gap-2 md:gap-4">
+              <span className="hidden sm:inline text-sm text-muted-foreground">Welcome, {profile?.name}</span>
+              <Button variant="outline" onClick={signOut} size="sm" className="touch-target">
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Sign Out</span>
               </Button>
             </div>
           </div>
         </header>
 
-        <div className="container mx-auto px-4 py-8 space-y-8">
+        <div className="mobile-container py-6 md:py-8 space-y-6 md:space-y-8">
           {/* Welcome Section */}
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold">Welcome, {profile?.name}!</h1>
-            <p className="text-muted-foreground">Upload and manage your music tracks</p>
+            <h1 className="text-2xl md:text-3xl font-bold">Welcome, {profile?.name}!</h1>
+            <p className="text-muted-foreground mobile-text">Upload and manage your music tracks</p>
           </div>
 
           {/* Upload Section */}
@@ -292,7 +292,7 @@ export default function ArtistDashboard() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleUpload} className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="mobile-stack">
                   <div className="space-y-2">
                     <Label htmlFor="title">Track Title *</Label>
                     <Input
@@ -322,7 +322,7 @@ export default function ArtistDashboard() {
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="mobile-stack">
                   <div className="space-y-2">
                     <Label htmlFor="music-file">Audio File * (MP3/WAV)</Label>
                     <Input
@@ -347,7 +347,7 @@ export default function ArtistDashboard() {
                   </div>
                 </div>
 
-                <Button type="submit" disabled={uploading} className="btn-primary">
+                <Button type="submit" disabled={uploading} className="btn-primary w-full sm:w-auto">
                   {uploading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -387,8 +387,9 @@ export default function ArtistDashboard() {
                   <p className="text-sm">Upload your first track to get started!</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
+                <div className="overflow-x-auto -mx-4 sm:mx-0">
+                  <div className="min-w-full inline-block align-middle">
+                    <Table className="min-w-[800px] sm:min-w-full">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Title</TableHead>
@@ -422,7 +423,7 @@ export default function ArtistDashboard() {
                             <AudioPlayer 
                               src={track.music_file_url}
                               title={track.title}
-                              className="min-w-[200px]"
+                              className="min-w-[250px] md:min-w-[200px]"
                             />
                           </TableCell>
                           <TableCell className="text-right">
@@ -438,7 +439,8 @@ export default function ArtistDashboard() {
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
+                    </Table>
+                  </div>
                 </div>
               )}
             </CardContent>

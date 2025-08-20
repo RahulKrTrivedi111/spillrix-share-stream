@@ -129,6 +129,7 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow-x: hidden; /* Prevent horizontal scroll */
   }
   
   html {
@@ -137,6 +138,43 @@
 }
 
 @layer components {
+  /* Mobile-First Responsive Utilities */
+  .mobile-container {
+    @apply px-4 mx-auto max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl;
+  }
+
+  .mobile-stack {
+    @apply flex flex-col gap-4 md:flex-row md:gap-6;
+  }
+
+  .mobile-grid {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] p-3;
+  }
+
+  .mobile-text {
+    @apply text-base leading-relaxed;
+  }
+
+  .mobile-input {
+    @apply h-12 px-4 text-base border-2 rounded-lg;
+  }
+
+  .mobile-button {
+    @apply h-12 px-6 text-base font-medium rounded-lg transition-all duration-200;
+  }
+
+  .mobile-card {
+    @apply p-4 rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm;
+  }
+
+  .mobile-nav {
+    @apply fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border;
+  }
+
   /* Premium Apple-style Components */
   .glass-card {
     @apply backdrop-blur-xl bg-white/80 dark:bg-card/80 border border-white/20 dark:border-border/20;
@@ -145,8 +183,8 @@
   
   .btn-primary {
     @apply bg-gradient-to-r from-primary to-primary-glow text-primary-foreground;
-    @apply shadow-lg hover:shadow-xl transition-all duration-300;
-    @apply hover:scale-105 active:scale-95;
+    @apply shadow-lg hover:shadow-xl transition-all duration-200;
+    @apply hover:scale-[1.02] active:scale-95 mobile-button;
   }
   
   .btn-ghost {
@@ -156,7 +194,7 @@
   .input-modern {
     @apply bg-white/50 dark:bg-card/50 backdrop-blur-sm border-border/50;
     @apply focus:border-primary focus:ring-2 focus:ring-primary/20;
-    @apply transition-all duration-200;
+    @apply transition-all duration-200 mobile-input;
   }
   
   .card-modern {
