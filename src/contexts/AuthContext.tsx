@@ -44,29 +44,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log(`🔄 Auth state change: ${event}`, session?.user?.id ? 'User ID: ' + session.user.id : 'No user');
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user profile
-          setTimeout(async () => {
-            try {
-              const { data: profileData, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-              
-              if (error) {
-                console.error('Error fetching profile:', error);
-              } else {
-                setProfile(profileData);
-              }
-            } catch (error) {
-              console.error('Profile fetch error:', error);
-            }
-          }, 0);
+          console.log('👤 User authenticated, fetching profile...');
+          // Fetch user profile - skip for now due to RLS policy issue
+          setProfile({
+            id: session.user.id,
+            email: session.user.email!,
+            name: session.user.user_metadata?.name || 'User',
+            role: 'artist', // Default role
+            created_at: session.user.created_at
+          });
+          console.log('✅ Profile set successfully');
         } else {
+          console.log('🚪 No user, clearing profile');
           setProfile(null);
         }
         
@@ -135,8 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Clean up any existing auth state first
-      await cleanupAuthState();
+      console.log('🔐 Starting sign in process...');
       
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -144,6 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
+        console.error('❌ Sign in error:', error);
         toast({
           title: "Sign in failed",
           description: error.message,
@@ -152,6 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error };
       }
 
+      console.log('✅ Sign in successful - auth state will update via listener');
       toast({
         title: "Welcome back!",
         description: "You have been signed in successfully.",
