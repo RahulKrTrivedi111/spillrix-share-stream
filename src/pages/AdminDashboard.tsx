@@ -161,15 +161,22 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
+      // Update local state immediately for better UX
+      setTracks(prevTracks => 
+        prevTracks.map(track => 
+          track.id === trackId ? { ...track, status } : track
+        )
+      );
+
       toast({
-        title: 'Status Updated',
-        description: `Track status changed to ${status}`,
+        title: 'Success!',
+        description: `Track ${status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : 'set to pending'} successfully`,
       });
     } catch (error) {
       console.error('Error updating status:', error);
       toast({
         title: 'Update Failed',
-        description: 'Failed to update track status',
+        description: error instanceof Error ? error.message : 'Failed to update track status',
         variant: 'destructive'
       });
     }
