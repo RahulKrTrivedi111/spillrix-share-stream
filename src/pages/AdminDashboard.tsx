@@ -499,9 +499,9 @@ export default function AdminDashboard() {
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
                 ) : (
-                  <div className="overflow-x-auto -mx-4 sm:mx-0">
-                    <div className="min-w-full inline-block align-middle">
-                      <Table className="min-w-[1000px] sm:min-w-full">
+                  <div className="mobile-table">
+                    <div className="mobile-table-content">
+                      <Table className="min-w-[1100px] lg:min-w-full">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-12">
@@ -510,6 +510,7 @@ export default function AdminDashboard() {
                               onCheckedChange={toggleAllTracks}
                             />
                           </TableHead>
+                          <TableHead className="w-20">Cover Art</TableHead>
                           <TableHead>Title</TableHead>
                           <TableHead>Artist</TableHead>
                           <TableHead>Genre</TableHead>
@@ -529,6 +530,19 @@ export default function AdminDashboard() {
                                 onCheckedChange={() => toggleTrackSelection(track.id)}
                               />
                             </TableCell>
+                            <TableCell>
+                              <div className="w-16 h-16 bg-muted rounded-lg overflow-hidden flex items-center justify-center">
+                                {track.cover_art_url ? (
+                                  <img 
+                                    src={track.cover_art_url} 
+                                    alt={`${track.title} cover`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <Music className="h-6 w-6 text-muted-foreground" />
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell className="font-medium">{track.title}</TableCell>
                             <TableCell>{track.profiles?.name}</TableCell>
                             <TableCell>{track.genre}</TableCell>
@@ -544,24 +558,28 @@ export default function AdminDashboard() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex gap-1 justify-end flex-wrap">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => updateTrackStatus(track.id, 'approved')}
-                                  className="text-success hover:bg-success hover:text-success-foreground touch-target"
-                                  title="Approve"
-                                >
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => updateTrackStatus(track.id, 'rejected')}
-                                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground touch-target"
-                                  title="Reject"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
+                                {track.status === 'pending' ? (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => updateTrackStatus(track.id, 'approved')}
+                                      className="text-success hover:bg-success hover:text-success-foreground touch-target"
+                                      title="Approve"
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => updateTrackStatus(track.id, 'rejected')}
+                                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground touch-target"
+                                      title="Reject"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                ) : null}
                                 <Button
                                   size="sm"
                                   variant="outline"

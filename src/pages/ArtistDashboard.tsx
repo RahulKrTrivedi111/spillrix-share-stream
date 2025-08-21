@@ -387,11 +387,12 @@ export default function ArtistDashboard() {
                   <p className="text-sm">Upload your first track to get started!</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto -mx-4 sm:mx-0">
-                  <div className="min-w-full inline-block align-middle">
-                    <Table className="min-w-[800px] sm:min-w-full">
+                <div className="mobile-table">
+                  <div className="mobile-table-content">
+                    <Table className="min-w-[900px] lg:min-w-full">
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-20">Cover Art</TableHead>
                         <TableHead>Title</TableHead>
                         <TableHead>Genre</TableHead>
                         <TableHead>Duration</TableHead>
@@ -404,6 +405,19 @@ export default function ArtistDashboard() {
                     <TableBody>
                       {tracks.map((track) => (
                         <TableRow key={track.id}>
+                          <TableCell>
+                            <div className="w-16 h-16 bg-muted rounded-lg overflow-hidden flex items-center justify-center">
+                              {track.cover_art_url ? (
+                                <img 
+                                  src={track.cover_art_url} 
+                                  alt={`${track.title} cover`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <Music className="h-6 w-6 text-muted-foreground" />
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell className="font-medium">{track.title}</TableCell>
                           <TableCell>{track.genre}</TableCell>
                           <TableCell>
@@ -431,7 +445,7 @@ export default function ArtistDashboard() {
                               variant="outline"
                               size="sm"
                               onClick={() => deleteTrack(track.id)}
-                              className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                              className="text-destructive hover:bg-destructive hover:text-destructive-foreground touch-target"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

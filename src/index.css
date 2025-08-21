@@ -140,7 +140,7 @@
 @layer components {
   /* Mobile-First Responsive Utilities */
   .mobile-container {
-    @apply px-4 mx-auto max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl;
+    @apply px-4 sm:px-6 mx-auto max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl;
   }
 
   .mobile-stack {
@@ -152,27 +152,50 @@
   }
 
   .touch-target {
-    @apply min-h-[44px] min-w-[44px] p-3;
+    @apply min-h-[48px] min-w-[48px] p-3 cursor-pointer;
   }
 
   .mobile-text {
-    @apply text-base leading-relaxed;
+    @apply text-base sm:text-lg leading-relaxed;
   }
 
   .mobile-input {
-    @apply h-12 px-4 text-base border-2 rounded-lg;
+    @apply h-12 sm:h-14 px-4 text-base border-2 rounded-lg;
   }
 
   .mobile-button {
-    @apply h-12 px-6 text-base font-medium rounded-lg transition-all duration-200;
+    @apply h-12 sm:h-14 px-6 text-base font-medium rounded-lg transition-all duration-200;
   }
 
   .mobile-card {
-    @apply p-4 rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm;
+    @apply p-4 sm:p-6 rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm;
   }
 
   .mobile-nav {
     @apply fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border;
+  }
+
+  /* Enhanced Mobile Table Styles */
+  .mobile-table {
+    @apply overflow-x-auto -mx-4 sm:mx-0;
+  }
+
+  .mobile-table-content {
+    @apply min-w-full inline-block align-middle;
+  }
+
+  .mobile-table table {
+    @apply min-w-[900px] lg:min-w-full;
+  }
+
+  .mobile-table th,
+  .mobile-table td {
+    @apply px-3 sm:px-4 py-3 sm:py-4;
+  }
+
+  /* Mobile-optimized button sizing */
+  .mobile-action-btn {
+    @apply min-h-[44px] min-w-[44px] p-2 sm:p-3;
   }
 
   /* Premium Apple-style Components */

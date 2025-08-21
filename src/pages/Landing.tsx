@@ -7,11 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/ui/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthGuard } from '@/components/auth/AuthGuard';
-import { Music, Upload, Users, Shield } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { Music, Upload, Users, Shield, ArrowLeft } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
 export default function Landing() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -24,7 +27,26 @@ export default function Landing() {
     setLoading(true);
 
     try {
-      if (isLogin) {
+      if (isForgotPassword) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth`
+        });
+        
+        if (error) {
+          toast({
+            title: 'Reset Failed',
+            description: error.message,
+            variant: 'destructive'
+          });
+        } else {
+          toast({
+            title: 'Reset Email Sent',
+            description: 'Check your email for password reset instructions.',
+          });
+          setIsForgotPassword(false);
+          setIsLogin(true);
+        }
+      } else if (isLogin) {
         const { error } = await signIn(email, password);
         if (!error) {
           // Navigation is handled by AuthGuard
@@ -97,11 +119,25 @@ export default function Landing() {
               <div className="flex justify-center lg:justify-end w-full">
                 <Card className="w-full max-w-md glass-card">
                   <CardHeader className="text-center">
+                    <div className="flex items-center justify-center mb-4">
+                      {isForgotPassword && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsForgotPassword(false)}
+                          className="absolute left-4 top-4"
+                        >
+                          <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                     <CardTitle className="text-2xl">
-                      {isLogin ? 'Welcome Back' : 'Join Spillrix'}
+                      {isForgotPassword ? 'Reset Password' : isLogin ? 'Welcome Back' : 'Join Spillrix'}
                     </CardTitle>
                     <CardDescription>
-                      {isLogin 
+                      {isForgotPassword 
+                        ? 'Enter your email to receive reset instructions'
+                        : isLogin 
                         ? 'Sign in to your account to continue' 
                         : 'Create your account to start sharing music'
                       }
@@ -110,7 +146,7 @@ export default function Landing() {
                   
                   <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-6">
-                      {!isLogin && (
+                      {!isLogin && !isForgotPassword && (
                         <div className="space-y-2">
                           <Label htmlFor="name">Full Name</Label>
                           <Input
@@ -119,7 +155,7 @@ export default function Landing() {
                             placeholder="Enter your full name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            required={!isLogin}
+                            required={!isLogin && !isForgotPassword}
                             className="input-modern"
                           />
                         </div>
@@ -138,18 +174,33 @@ export default function Landing() {
                         />
                       </div>
                       
-                      <div className="space-y-2">
-                        <Label htmlFor="password">Password</Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          placeholder="Enter your password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                          className="input-modern"
-                        />
-                      </div>
+                      {!isForgotPassword && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="password">Password</Label>
+                            {isLogin && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setIsForgotPassword(true)}
+                                className="text-sm text-primary hover:text-primary/80 h-auto p-0"
+                              >
+                                Forgot Password?
+                              </Button>
+                            )}
+                          </div>
+                          <Input
+                            id="password"
+                            type="password"
+                            placeholder="Enter your password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required={!isForgotPassword}
+                            className="input-modern"
+                          />
+                        </div>
+                      )}
                       
                       <Button 
                         type="submit" 
@@ -160,29 +211,31 @@ export default function Landing() {
                         {loading ? (
                           <>
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            {isLogin ? 'Signing In...' : 'Creating Account...'}
+                            {isForgotPassword ? 'Sending Reset Email...' : isLogin ? 'Signing In...' : 'Creating Account...'}
                           </>
                         ) : (
-                          isLogin ? 'Sign In' : 'Create Account'
+                          isForgotPassword ? 'Send Reset Email' : isLogin ? 'Sign In' : 'Create Account'
                         )}
                       </Button>
                     </form>
                     
-                    <div className="mt-6 text-center">
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          setIsLogin(!isLogin);
-                          setPassword('');
-                        }}
-                        className="text-primary hover:text-primary/80"
-                      >
-                        {isLogin 
-                          ? "Don't have an account? Sign up" 
-                          : 'Already have an account? Sign in'
-                        }
-                      </Button>
-                    </div>
+                    {!isForgotPassword && (
+                      <div className="mt-6 text-center">
+                        <Button
+                          variant="ghost"
+                          onClick={() => {
+                            setIsLogin(!isLogin);
+                            setPassword('');
+                          }}
+                          className="text-primary hover:text-primary/80"
+                        >
+                          {isLogin 
+                            ? "Don't have an account? Sign up" 
+                            : 'Already have an account? Sign in'
+                          }
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
