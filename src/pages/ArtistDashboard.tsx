@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Logo } from '@/components/ui/Logo';
+import Logo from '@/components/ui/Logo';
 import { AudioPlayer } from '@/components/audio/AudioPlayer';
 import { toast } from '@/hooks/use-toast';
 import { Upload, LogOut, Trash2, Music, Calendar, Clock } from 'lucide-react';
@@ -236,11 +236,11 @@ export default function ArtistDashboard() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
-        return <Badge className="status-approved">Approved</Badge>;
+        return <Badge className="status-approved bg-green-500 text-white">Approved</Badge>;
       case 'rejected':
-        return <Badge className="status-rejected">Rejected</Badge>;
+        return <Badge className="status-rejected bg-red-500 text-white">Rejected</Badge>;
       default:
-        return <Badge className="status-pending">Pending</Badge>;
+        return <Badge className="status-pending bg-violet-500 text-white">Pending</Badge>;
     }
   };
 
@@ -261,7 +261,10 @@ export default function ArtistDashboard() {
         {/* Header */}
         <header className="border-b border-border bg-card">
           <div className="mobile-container py-4 flex items-center justify-between">
-            <Logo size="md" />
+            <div className="flex items-center">
+              <Logo size="md" />
+              <span className="text-lg font-semibold ml-2">Spillrix Distribution</span>
+            </div>
             <div className="flex items-center gap-2 md:gap-4">
               <span className="hidden sm:inline text-sm text-muted-foreground">Welcome, {profile?.name}</span>
               <Button variant="outline" onClick={signOut} size="sm" className="touch-target">
