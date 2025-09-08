@@ -12,15 +12,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Logo from '@/components/ui/Logo';
 import { AudioPlayer } from '@/components/audio/AudioPlayer';
 import { toast } from '@/hooks/use-toast';
-import { 
-  LogOut, 
-  Users, 
-  Music, 
-  Search, 
-  Download, 
-  Trash2, 
-  Check, 
-  X, 
+import {
+  LogOut,
+  Users,
+  Music,
+  Search,
+  Download,
+  Check,
+  X,
   Clock,
   Calendar,
   UserX,
@@ -64,20 +63,13 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchData();
-    
-    // Set up real-time subscriptions
+
     const tracksChannel = supabase
       .channel('admin-tracks-changes')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tracks'
-        },
-        () => {
-          fetchTracks();
-        }
+        { event: '*', schema: 'public', table: 'tracks' },
+        () => { fetchTracks(); }
       )
       .subscribe();
 
@@ -85,14 +77,8 @@ export default function AdminDashboard() {
       .channel('admin-profiles-changes')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'profiles'
-        },
-        () => {
-          fetchProfiles();
-        }
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => { fetchProfiles(); }
       )
       .subscribe();
 
@@ -161,7 +147,6 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
-      // Update local state immediately for better UX
       setTracks(prevTracks => 
         prevTracks.map(track => 
           track.id === trackId ? { ...track, status } : track
@@ -241,16 +226,8 @@ export default function AdminDashboard() {
 
   const downloadTrack = async (url: string, filename: string) => {
     try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
+      console.log('DL URL:', url);
+      window.open(url, '_blank');
     } catch (error) {
       console.error('Download error:', error);
       toast({
@@ -289,7 +266,7 @@ export default function AdminDashboard() {
   const filteredTracks = tracks.filter(track => {
     const matchesSearch = track.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          track.genre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         track.profiles?.name.toLowerCase().includes(searchTerm.toLowerCase());
+                         (track.profiles?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || track.status === statusFilter;
     
@@ -311,7 +288,7 @@ export default function AdminDashboard() {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const formatDuration = (seconds: number | null) => {
+  const formatDuration = (seconds: number | null | undefined) => {
     if (!seconds) return 'Unknown';
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -347,7 +324,6 @@ export default function AdminDashboard() {
   return (
     <AuthGuard requireAuth requireAdmin>
       <div className="min-h-screen bg-background">
-        {/* Header */}
         <header className="border-b border-border bg-card">
           <div className="mobile-container py-4 flex items-center justify-between">
             <div className="flex items-center">
@@ -365,7 +341,6 @@ export default function AdminDashboard() {
         </header>
 
         <div className="mobile-container py-6 md:py-8 space-y-6 md:space-y-8">
-          {/* Stats Cards */}
           <div className="mobile-grid">
             <Card className="mobile-card">
               <CardContent className="p-4">
@@ -416,7 +391,6 @@ export default function AdminDashboard() {
             </Card>
           </div>
 
-          {/* Tab Navigation */}
           <div className="mobile-stack sm:flex-row">
             <Button
               variant={activeTab === 'tracks' ? 'default' : 'outline'}
@@ -437,7 +411,6 @@ export default function AdminDashboard() {
           </div>
 
           {activeTab === 'tracks' ? (
-            /* Tracks Management */
             <Card className="card-modern">
               <CardHeader>
                 <CardTitle>Track Management</CardTitle>
@@ -445,7 +418,6 @@ export default function AdminDashboard() {
                   Manage all tracks uploaded by artists
                 </CardDescription>
                 
-                {/* Filters and Search */}
                 <div className="mobile-stack">
                   <div className="flex-1">
                     <div className="relative">
@@ -472,7 +444,6 @@ export default function AdminDashboard() {
                   </Select>
                 </div>
 
-                {/* Bulk Actions */}
                 {selectedTracks.length > 0 && (
                   <div className="space-y-3 p-4 bg-muted rounded-lg">
                     <span className="text-sm text-muted-foreground block">
@@ -604,7 +575,6 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           ) : (
-            /* User Management */
             <Card className="card-modern">
               <CardHeader>
                 <CardTitle>User Management</CardTitle>
