@@ -4,50 +4,30 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import Logo from '@/components/ui/Logo';
 import { AudioPlayer } from '@/components/audio/AudioPlayer';
 import { toast } from '@/hooks/use-toast';
-import { Upload, LogOut, Trash2, Music, Calendar, Clock } from 'lucide-react';
+import { Upload, LogOut, Trash2, Music, Calendar, Clock, Edit } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+import { NewReleaseForm } from '@/components/forms/NewReleaseForm';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tables } from '@/integrations/supabase/types';
 
-interface Track {
-  id: string;
-  title: string;
-  genre: string;
-  music_file_url: string;
-  cover_art_url?: string;
-  duration?: number;
-  status: 'pending' | 'approved' | 'rejected';
-  upload_date: string;
-}
-
-const GENRES = [
-  'Pop', 'Rock', 'Hip Hop', 'Electronic', 'Jazz', 'Classical', 
-  'R&B', 'Country', 'Folk', 'Reggae', 'Blues', 'Punk', 'Metal', 'Other'
-];
+interface Track extends Tables<"tracks"> {}
 
 export default function ArtistDashboard() {
   const { profile, signOut } = useAuth();
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  
-  // Form state
-  const [title, setTitle] = useState('');
-  const [genre, setGenre] = useState('');
-  const [musicFile, setMusicFile] = useState<File | null>(null);
-  const [coverArt, setCoverArt] = useState<File | null>(null);
+  const [editingTrack, setEditingTrack] = useState<Track | undefined>(undefined);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
     if (profile?.id) {
       fetchTracks();
       
-      // Set up real-time subscription
       const channel = supabase
         .channel('tracks-changes')
         .on(
@@ -84,7 +64,26 @@ export default function ArtistDashboard() {
         .order('upload_date', { ascending: false });
 
       if (error) throw error;
-      setTracks((data as Track[]) || []);
+
+      const enhancedTracks = data.map(track => {
+        let musicPublicUrl = '';
+        if (track.music_file_url && !track.music_file_url.startsWith('http')) {
+          musicPublicUrl = supabase.storage.from('music-files').getPublicUrl(track.music_file_url).data.publicUrl;
+        } else {
+          musicPublicUrl = track.music_file_url || '';
+        }
+
+        let coverArtPublicUrl = '';
+        if (track.cover_art_url && !track.cover_art_url.startsWith('http')) {
+          coverArtPublicUrl = supabase.storage.from('cover-art').getPublicUrl(track.cover_art_url).data.publicUrl;
+        } else {
+          coverArtPublicUrl = track.cover_art_url || '';
+        }
+
+        return { ...track, music_file_url: musicPublicUrl, cover_art_url: coverArtPublicUrl };
+      });
+
+      setTracks((enhancedTracks as Track[]) || []);
     } catch (error) {
       console.error('Error fetching tracks:', error);
       toast({
@@ -94,117 +93,6 @@ export default function ArtistDashboard() {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const uploadFile = async (file: File, path: string) => {
-    const { data, error } = await supabase.storage
-      .from('tracks')
-      .upload(path, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (error) throw error;
-    return data;
-  };
-
-  const getSignedUrl = async (path: string) => {
-    const { data, error } = await supabase.storage
-      .from('tracks')
-      .createSignedUrl(path, 60 * 60 * 24 * 365); // 1 year
-
-    if (error) throw error;
-    return data.signedUrl;
-  };
-
-  const detectDuration = (file: File): Promise<number> => {
-    return new Promise((resolve, reject) => {
-      const audio = new Audio();
-      audio.onloadedmetadata = () => {
-        resolve(Math.round(audio.duration));
-      };
-      audio.onerror = () => reject(new Error('Could not load audio'));
-      audio.src = URL.createObjectURL(file);
-    });
-  };
-
-  const handleUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!musicFile || !title || !genre) {
-      toast({
-        title: 'Missing Information',
-        description: 'Please fill in all required fields and select an audio file.',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const timestamp = Date.now();
-      const musicPath = `${profile?.id}/${timestamp}-${musicFile.name}`;
-      
-      // Upload music file
-      await uploadFile(musicFile, musicPath);
-      const musicUrl = await getSignedUrl(musicPath);
-      
-      // Upload cover art if provided
-      let coverUrl = null;
-      if (coverArt) {
-        const coverPath = `${profile?.id}/covers/${timestamp}-${coverArt.name}`;
-        await uploadFile(coverArt, coverPath);
-        coverUrl = await getSignedUrl(coverPath);
-      }
-      
-      // Detect duration
-      let duration = null;
-      try {
-        duration = await detectDuration(musicFile);
-      } catch (error) {
-        console.warn('Could not detect duration:', error);
-      }
-
-      // Save to database
-      const { error: dbError } = await supabase
-        .from('tracks')
-        .insert({
-          title,
-          genre,
-          music_file_url: musicUrl,
-          cover_art_url: coverUrl,
-          duration,
-          artist_id: profile?.id,
-          status: 'pending'
-        });
-
-      if (dbError) throw dbError;
-
-      toast({
-        title: 'Track Uploaded!',
-        description: 'Your track has been uploaded and is pending approval.',
-      });
-
-      // Reset form
-      setTitle('');
-      setGenre('');
-      setMusicFile(null);
-      setCoverArt(null);
-      const musicInput = document.getElementById('music-file') as HTMLInputElement;
-      const coverInput = document.getElementById('cover-art') as HTMLInputElement;
-      if (musicInput) musicInput.value = '';
-      if (coverInput) coverInput.value = '';
-      
-      fetchTracks();
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: 'Upload Failed',
-        description: 'There was an error uploading your track. Please try again.',
-        variant: 'destructive'
-      });
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -233,6 +121,12 @@ export default function ArtistDashboard() {
     }
   };
 
+  const handleFormSuccess = () => {
+    setIsFormOpen(false);
+    setEditingTrack(undefined);
+    fetchTracks();
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
@@ -257,6 +151,7 @@ export default function ArtistDashboard() {
 
   return (
     <AuthGuard requireAuth>
+       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
       <div className="min-h-screen bg-background">
         {/* Header */}
         <header className="border-b border-border bg-card">
@@ -290,80 +185,13 @@ export default function ArtistDashboard() {
                 Upload New Track
               </CardTitle>
               <CardDescription>
-                Share your music with the world. Upload MP3 or WAV files.
+                Share your music with the world. Upload WAV files.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleUpload} className="space-y-6">
-                <div className="mobile-stack">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Track Title *</Label>
-                    <Input
-                      id="title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="Enter track title"
-                      required
-                      className="input-modern"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="genre">Genre *</Label>
-                    <Select value={genre} onValueChange={setGenre} required>
-                      <SelectTrigger className="input-modern">
-                        <SelectValue placeholder="Select genre" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {GENRES.map((g) => (
-                          <SelectItem key={g} value={g}>
-                            {g}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="mobile-stack">
-                  <div className="space-y-2">
-                    <Label htmlFor="music-file">Audio File * (MP3/WAV)</Label>
-                    <Input
-                      id="music-file"
-                      type="file"
-                      accept=".mp3,.wav"
-                      onChange={(e) => setMusicFile(e.target.files?.[0] || null)}
-                      required
-                      className="input-modern"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="cover-art">Cover Art (Optional)</Label>
-                    <Input
-                      id="cover-art"
-                      type="file"
-                      accept=".jpg,.jpeg,.png,.webp"
-                      onChange={(e) => setCoverArt(e.target.files?.[0] || null)}
-                      className="input-modern"
-                    />
-                  </div>
-                </div>
-
-                <Button type="submit" disabled={uploading} className="btn-primary w-full sm:w-auto">
-                  {uploading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Track
-                    </>
-                  )}
-                </Button>
-              </form>
+               <DialogTrigger asChild>
+                 <Button onClick={() => setEditingTrack(undefined)}>Create New Release</Button>
+               </DialogTrigger>
             </CardContent>
           </Card>
 
@@ -444,14 +272,27 @@ export default function ArtistDashboard() {
                             />
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => deleteTrack(track.id)}
-                              className="text-destructive hover:bg-destructive hover:text-destructive-foreground touch-target"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center justify-end gap-2">
+                              {track.status === 'rejected' && (
+                                 <DialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setEditingTrack(track)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                 </DialogTrigger>
+                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => deleteTrack(track.id)}
+                                className="text-destructive hover:bg-destructive hover:text-destructive-foreground touch-target"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -464,6 +305,16 @@ export default function ArtistDashboard() {
           </Card>
         </div>
       </div>
+       <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingTrack ? "Edit Release" : "Create New Release"}</DialogTitle>
+            <DialogDescription>
+              {editingTrack ? 'Update the details for your track.' : 'Submit a new track for distribution. Please fill out all required fields.'}
+            </DialogDescription>
+          </DialogHeader>
+          <NewReleaseForm track={editingTrack} onSuccess={handleFormSuccess} />
+        </DialogContent>
+      </Dialog>
     </AuthGuard>
   );
 }

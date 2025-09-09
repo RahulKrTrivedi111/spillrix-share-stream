@@ -1,5 +1,5 @@
 import React from 'react';
-import logo from './Untitled design (6).png';
+import logo from '../../Untitled design (6).png';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';

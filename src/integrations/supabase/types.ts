@@ -1,4 +1,4 @@
-export type Json =
+export type Json = 
   | string
   | number
   | boolean
@@ -50,6 +50,7 @@ export type Database = {
           status: string | null
           title: string
           upload_date: string | null
+          upc_irsc: string | null
         }
         Insert: {
           artist_id?: string | null
@@ -62,6 +63,7 @@ export type Database = {
           status?: string | null
           title: string
           upload_date?: string | null
+          upc_irsc?: string | null
         }
         Update: {
           artist_id?: string | null
@@ -74,6 +76,7 @@ export type Database = {
           status?: string | null
           title?: string
           upload_date?: string | null
+          upc_irsc?: string | null
         }
         Relationships: [
           {

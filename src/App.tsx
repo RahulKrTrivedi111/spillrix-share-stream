@@ -9,36 +9,52 @@ import Landing from "./pages/Landing";
 import ArtistDashboard from "./pages/ArtistDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
+import { useState, useEffect } from 'react';
+import { supabase } from './integrations/supabase/client';
+import { NewReleaseForm } from './components/forms/NewReleaseForm';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={<Landing />} />
-            <Route path="/dashboard" element={
-              <AuthGuard requireAuth={true}>
-                <ArtistDashboard />
-              </AuthGuard>
-            } />
-            <Route path="/admin" element={
-              <AuthGuard requireAuth={true} requireAdmin={true}>
-                <AdminDashboard />
-              </AuthGuard>
-            } />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [authInitialized, setAuthInitialized] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setAuthInitialized(true);
+      }
+    });
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/auth" element={<Landing />} />
+              <Route path="/dashboard" element={
+                <AuthGuard requireAuth={true}>
+                  <ArtistDashboard />
+                </AuthGuard>
+              } />
+              <Route path="/admin" element={
+                <AuthGuard requireAuth={true} requireAdmin={true}>
+                  <AdminDashboard />
+                </AuthGuard>
+              } />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+        {authInitialized && <NewReleaseForm/>}
+    </QueryClientProvider>
+  );
+};
 
 export default App;
