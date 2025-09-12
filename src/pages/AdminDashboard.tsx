@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import Logo from '@/components/ui/Logo';
-import { AudioPlayer } from '@/components/audio/AudioPlayer';
+import { AudioPlayerWithUrl } from '@/components/audio/AudioPlayerWithUrl';
 import { toast } from '@/hooks/use-toast';
 import {
   LogOut,
@@ -27,6 +27,7 @@ import {
   Image
 } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+import { generateMusicUrl, generateCoverArtUrl } from '@/lib/storage-utils';
 
 interface Track {
   id: string;
@@ -288,31 +289,11 @@ export default function AdminDashboard() {
         return;
       }
 
-      // If it's already a full URL, use it directly
-      if (url.startsWith('http')) {
-        window.open(url, '_blank');
-        return;
-      }
-
-      // For file paths, generate a signed URL from cover-art bucket
-      try {
-        const { data, error } = await supabase.storage
-          .from('cover-art')
-          .createSignedUrl(url, 60); // 60 seconds expiry
-
-        if (error) {
-          // Fallback to tracks bucket for older cover art
-          const { data: fallbackData, error: fallbackError } = await supabase.storage
-            .from('tracks')
-            .createSignedUrl(url, 60);
-
-          if (fallbackError) throw fallbackError;
-          window.open(fallbackData.signedUrl, '_blank');
-        } else {
-          window.open(data.signedUrl, '_blank');
-        }
-      } catch (storageError) {
-        console.error('Cover art storage error:', storageError);
+      const signedUrl = await generateCoverArtUrl(url);
+      
+      if (signedUrl) {
+        window.open(signedUrl, '_blank');
+      } else {
         toast({
           title: 'Download Failed',
           description: 'Failed to generate cover art download link',
@@ -627,8 +608,8 @@ export default function AdminDashboard() {
                             <TableCell>{formatDate(track.upload_date)}</TableCell>
                             <TableCell>{getStatusBadge(track.status)}</TableCell>
                             <TableCell>
-                              <AudioPlayer 
-                                src={track.music_file_url}
+                              <AudioPlayerWithUrl 
+                                filePath={track.music_file_url || ''}
                                 title={track.title}
                                 className="min-w-[250px] md:min-w-[200px]"
                               />
