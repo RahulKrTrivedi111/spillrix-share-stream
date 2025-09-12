@@ -226,8 +226,23 @@ export default function AdminDashboard() {
 
   const downloadTrack = async (url: string, filename: string) => {
     try {
-      console.log('DL URL:', url);
-      window.open(url, '_blank');
+      if (!url) {
+        toast({
+          title: 'Download Failed',
+          description: 'No music file URL available',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // If it's already a full URL, use it directly
+      if (url.startsWith('http')) {
+        window.open(url, '_blank');
+      } else {
+        // If it's just a file path, construct the Supabase storage URL
+        const downloadUrl = `https://ctwauyndeushfyxzzaxd.supabase.co/storage/v1/object/public/music-files/${url}`;
+        window.open(downloadUrl, '_blank');
+      }
     } catch (error) {
       console.error('Download error:', error);
       toast({
@@ -508,10 +523,10 @@ export default function AdminDashboard() {
                                <div className="w-16 h-16 bg-muted rounded-lg overflow-hidden flex items-center justify-center">
                                  {track.cover_art_url ? (
                                    <img 
-                                     src={track.cover_art_url.startsWith('http') 
-                                       ? track.cover_art_url 
-                                       : `https://ctwauyndeushfyxzzaxd.supabase.co/storage/v1/object/public/tracks/${track.cover_art_url}`
-                                     } 
+                                      src={track.cover_art_url.startsWith('http') 
+                                        ? track.cover_art_url 
+                                        : `https://ctwauyndeushfyxzzaxd.supabase.co/storage/v1/object/public/cover-art/${track.cover_art_url}`
+                                      }
                                      alt={`${track.title} cover`}
                                      className="w-full h-full object-cover"
                                      onError={(e) => {
