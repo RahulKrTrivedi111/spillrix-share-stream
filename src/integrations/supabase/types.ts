@@ -44,6 +44,8 @@ export type Database = {
           command: string | null
           cover_art_url: string | null
           created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           duration: number | null
           genre: string | null
           id: string
@@ -58,6 +60,8 @@ export type Database = {
           command?: string | null
           cover_art_url?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           duration?: number | null
           genre?: string | null
           id?: string
@@ -72,6 +76,8 @@ export type Database = {
           command?: string | null
           cover_art_url?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           duration?: number | null
           genre?: string | null
           id?: string
@@ -85,6 +91,13 @@ export type Database = {
           {
             foreignKeyName: "tracks_artist_id_fkey"
             columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracks_deleted_by_fkey"
+            columns: ["deleted_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

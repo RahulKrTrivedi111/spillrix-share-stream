@@ -24,7 +24,9 @@ import {
   Calendar,
   UserX,
   UserCheck,
-  Image
+  Image,
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { generateMusicUrl, generateCoverArtUrl } from '@/lib/storage-utils';
@@ -39,6 +41,8 @@ interface Track {
   status: 'pending' | 'approved' | 'rejected';
   upload_date: string;
   artist_id: string;
+  deleted_at?: string;
+  deleted_by?: string;
   profiles?: {
     name: string;
     email: string;
@@ -56,12 +60,13 @@ interface Profile {
 export default function AdminDashboard() {
   const { profile, signOut } = useAuth();
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [deletedTracks, setDeletedTracks] = useState<Track[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedTracks, setSelectedTracks] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'tracks' | 'users'>('tracks');
+  const [activeTab, setActiveTab] = useState<'tracks' | 'users' | 'recycle-bin'>('tracks');
 
   useEffect(() => {
     fetchData();
@@ -92,7 +97,7 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     setLoading(true);
-    await Promise.all([fetchTracks(), fetchProfiles()]);
+    await Promise.all([fetchTracks(), fetchProfiles(), fetchDeletedTracks()]);
     setLoading(false);
   };
 
@@ -107,15 +112,45 @@ export default function AdminDashboard() {
             email
           )
         `)
+        .is('deleted_at', null)
         .order('upload_date', { ascending: false });
 
       if (error) throw error;
-      setTracks((data as Track[]) || []);
+      setTracks((data as any) || []);
     } catch (error) {
       console.error('Error fetching tracks:', error);
       toast({
         title: 'Error',
         description: 'Failed to fetch tracks',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const fetchDeletedTracks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tracks')
+        .select(`
+          *,
+          profiles!tracks_artist_id_fkey (
+            name,
+            email
+          ),
+          profiles!tracks_deleted_by_fkey (
+            name
+          )
+        `)
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false });
+
+      if (error) throw error;
+      setDeletedTracks((data as any) || []);
+    } catch (error) {
+      console.error('Error fetching deleted tracks:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch deleted tracks',
         variant: 'destructive'
       });
     }
@@ -203,8 +238,100 @@ export default function AdminDashboard() {
     }
   };
 
-  const deleteTrack = async (trackId: string) => {
+  const moveToRecycleBin = async (trackId: string) => {
     try {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('tracks')
+        .update({ 
+          deleted_at: new Date().toISOString(),
+          deleted_by: data.user.id 
+        })
+        .eq('id', trackId);
+
+      if (error) throw error;
+
+      await fetchData();
+      toast({
+        title: 'Track Moved to Recycle Bin',
+        description: 'Track can be restored from the recycle bin',
+      });
+    } catch (error) {
+      console.error('Error moving track to recycle bin:', error);
+      toast({
+        title: 'Move Failed',
+        description: 'Failed to move track to recycle bin',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const restoreTrack = async (trackId: string) => {
+    try {
+      const { error } = await supabase
+        .from('tracks')
+        .update({ 
+          deleted_at: null,
+          deleted_by: null 
+        })
+        .eq('id', trackId);
+
+      if (error) throw error;
+
+      await fetchData();
+      toast({
+        title: 'Track Restored',
+        description: 'Track has been restored successfully',
+      });
+    } catch (error) {
+      console.error('Error restoring track:', error);
+      toast({
+        title: 'Restore Failed',
+        description: 'Failed to restore track',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const permanentlyDeleteTrack = async (trackId: string) => {
+    try {
+      const track = deletedTracks.find(t => t.id === trackId);
+      if (!track) return;
+
+      // Delete files from storage
+      const deletePromises = [];
+      
+      if (track.music_file_url) {
+        const musicPath = track.music_file_url.includes('http') 
+          ? track.music_file_url.split('/').pop()?.split('?')[0]
+          : track.music_file_url;
+        
+        if (musicPath) {
+          deletePromises.push(
+            supabase.storage.from('music-files').remove([musicPath]),
+            supabase.storage.from('tracks').remove([musicPath])
+          );
+        }
+      }
+
+      if (track.cover_art_url) {
+        const coverPath = track.cover_art_url.includes('http')
+          ? track.cover_art_url.split('/').pop()?.split('?')[0]
+          : track.cover_art_url;
+        
+        if (coverPath) {
+          deletePromises.push(
+            supabase.storage.from('cover-art').remove([coverPath]),
+            supabase.storage.from('tracks').remove([coverPath])
+          );
+        }
+      }
+
+      await Promise.allSettled(deletePromises);
+
+      // Delete track record
       const { error } = await supabase
         .from('tracks')
         .delete()
@@ -212,15 +339,35 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
+      await fetchDeletedTracks();
       toast({
-        title: 'Track Deleted',
-        description: 'Track has been permanently deleted',
+        title: 'Track Permanently Deleted',
+        description: 'Track and associated files deleted. Storage space freed.',
       });
     } catch (error) {
-      console.error('Error deleting track:', error);
+      console.error('Error permanently deleting track:', error);
       toast({
         title: 'Delete Failed',
-        description: 'Failed to delete track',
+        description: 'Failed to permanently delete track',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const emptyRecycleBin = async () => {
+    try {
+      for (const track of deletedTracks) {
+        await permanentlyDeleteTrack(track.id);
+      }
+      toast({
+        title: 'Recycle Bin Emptied',
+        description: 'All deleted tracks have been permanently removed',
+      });
+    } catch (error) {
+      console.error('Error emptying recycle bin:', error);
+      toast({
+        title: 'Empty Failed',
+        description: 'Failed to empty recycle bin',
         variant: 'destructive'
       });
     }
@@ -388,6 +535,7 @@ export default function AdminDashboard() {
     pendingTracks: tracks.filter(t => t.status === 'pending').length,
     approvedTracks: tracks.filter(t => t.status === 'approved').length,
     rejectedTracks: tracks.filter(t => t.status === 'rejected').length,
+    deletedTracks: deletedTracks.length,
     totalUsers: profiles.length,
     activeUsers: profiles.filter(p => p.role === 'artist').length,
     inactiveUsers: profiles.filter(p => p.role === 'inactive').length
@@ -471,6 +619,14 @@ export default function AdminDashboard() {
             >
               <Music className="h-4 w-4 mr-2" />
               Track Management
+            </Button>
+            <Button
+              variant={activeTab === 'recycle-bin' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('recycle-bin')}
+              className="w-full sm:w-auto touch-target"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Recycle Bin ({stats.deletedTracks})
             </Button>
             <Button
               variant={activeTab === 'users' ? 'default' : 'outline'}
@@ -647,22 +803,154 @@ export default function AdminDashboard() {
                                  >
                                    <Download className="h-4 w-4" />
                                  </Button>
-                                 {track.cover_art_url && (
-                                   <Button
-                                     size="sm"
-                                     variant="outline"
-                                     onClick={() => downloadCoverArt(track.cover_art_url!)}
-                                     className="touch-target"
-                                     title="Download Cover Art"
-                                   >
-                                     <Image className="h-4 w-4" />
-                                   </Button>
-                                 )}
+                                  {track.cover_art_url && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => downloadCoverArt(track.cover_art_url!)}
+                                      className="touch-target"
+                                      title="Download Cover Art"
+                                    >
+                                      <Image className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => {
+                                      if (window.confirm('Move this track to recycle bin?')) {
+                                        moveToRecycleBin(track.id);
+                                      }
+                                    }}
+                                    className="touch-target"
+                                    title="Move to Recycle Bin"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
                               </div>
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : activeTab === 'recycle-bin' ? (
+            <Card className="card-modern">
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Recycle Bin</CardTitle>
+                    <CardDescription>
+                      Deleted tracks that can be restored or permanently deleted
+                    </CardDescription>
+                  </div>
+                  {deletedTracks.length > 0 && (
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => {
+                        if (window.confirm('Permanently delete all tracks in recycle bin? This will free up storage space but cannot be undone.')) {
+                          emptyRecycleBin();
+                        }
+                      }}
+                    >
+                      Empty Recycle Bin
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : deletedTracks.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Trash2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No deleted tracks</p>
+                    <p className="text-sm">Deleted tracks will appear here</p>
+                  </div>
+                ) : (
+                  <div className="mobile-table">
+                    <div className="mobile-table-content">
+                      <Table className="min-w-[1000px] lg:min-w-full">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-20">Cover Art</TableHead>
+                            <TableHead>Title</TableHead>
+                            <TableHead>Artist</TableHead>
+                            <TableHead>Genre</TableHead>
+                            <TableHead>Deleted Date</TableHead>
+                            <TableHead>Deleted By</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {deletedTracks.map((track) => (
+                            <TableRow key={track.id}>
+                              <TableCell>
+                                <div className="w-16 h-16 bg-muted rounded-lg overflow-hidden flex items-center justify-center">
+                                  {track.cover_art_url ? (
+                                    <img 
+                                      src={track.cover_art_url.startsWith('http') 
+                                        ? track.cover_art_url 
+                                        : `https://ctwauyndeushfyxzzaxd.supabase.co/storage/v1/object/public/cover-art/${track.cover_art_url}`
+                                      }
+                                      alt={`${track.title} cover`}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <Music className="h-8 w-8 text-muted-foreground" />
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="font-medium">{track.title}</TableCell>
+                              <TableCell>{track.profiles?.name || 'Unknown'}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{track.genre || 'Unknown'}</Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {track.deleted_at ? formatDate(track.deleted_at) : 'Unknown'}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {(track as any).profiles?.name || 'Unknown Admin'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex gap-1 justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => restoreTrack(track.id)}
+                                    className="touch-target"
+                                    title="Restore Track"
+                                  >
+                                    <RotateCcw className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => {
+                                      if (window.confirm('Permanently delete this track? This will free up storage space but cannot be undone.')) {
+                                        permanentlyDeleteTrack(track.id);
+                                      }
+                                    }}
+                                    className="touch-target"
+                                    title="Permanently Delete"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
                       </Table>
                     </div>
                   </div>
