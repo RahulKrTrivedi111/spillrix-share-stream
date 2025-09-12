@@ -238,10 +238,33 @@ export default function AdminDashboard() {
       // If it's already a full URL, use it directly
       if (url.startsWith('http')) {
         window.open(url, '_blank');
-      } else {
-        // If it's just a file path, construct the Supabase storage URL
-        const downloadUrl = `https://ctwauyndeushfyxzzaxd.supabase.co/storage/v1/object/public/music-files/${url}`;
-        window.open(downloadUrl, '_blank');
+        return;
+      }
+
+      // For file paths, generate a signed URL from private bucket
+      try {
+        const { data, error } = await supabase.storage
+          .from('music-files')
+          .createSignedUrl(url, 60); // 60 seconds expiry
+
+        if (error) {
+          // Fallback to tracks bucket if music-files fails
+          const { data: fallbackData, error: fallbackError } = await supabase.storage
+            .from('tracks')
+            .createSignedUrl(url, 60);
+
+          if (fallbackError) throw fallbackError;
+          window.open(fallbackData.signedUrl, '_blank');
+        } else {
+          window.open(data.signedUrl, '_blank');
+        }
+      } catch (storageError) {
+        console.error('Storage error:', storageError);
+        toast({
+          title: 'Download Failed',
+          description: 'Failed to generate download link',
+          variant: 'destructive'
+        });
       }
     } catch (error) {
       console.error('Download error:', error);
@@ -530,6 +553,11 @@ export default function AdminDashboard() {
                                      alt={`${track.title} cover`}
                                      className="w-full h-full object-cover"
                                      onError={(e) => {
+                                       // Fallback to tracks bucket for older cover art
+                                       const fallbackUrl = track.cover_art_url.startsWith('http') 
+                                         ? track.cover_art_url 
+                                         : `https://ctwauyndeushfyxzzaxd.supabase.co/storage/v1/object/public/tracks/${track.cover_art_url}`;
+                                       e.currentTarget.src = fallbackUrl;
                                        e.currentTarget.style.display = 'none';
                                        e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center"><svg class="h-6 w-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l6-6v13M9 19c0 1.1.9 2 2 2s2-.9 2-2M9 19H7c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2h2M15 19h2c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-2v6.5L15 9l2 2.5V19z"/></svg></div>';
                                      }}
