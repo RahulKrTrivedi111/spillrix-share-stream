@@ -1,4 +1,4 @@
-export type Json = 
+export type Json =
   | string
   | number
   | boolean
@@ -41,6 +41,7 @@ export type Database = {
       tracks: {
         Row: {
           artist_id: string | null
+          command: string | null
           cover_art_url: string | null
           created_at: string | null
           duration: number | null
@@ -49,11 +50,12 @@ export type Database = {
           music_file_url: string | null
           status: string | null
           title: string
-          upload_date: string | null
           upc_irsc: string | null
+          upload_date: string | null
         }
         Insert: {
           artist_id?: string | null
+          command?: string | null
           cover_art_url?: string | null
           created_at?: string | null
           duration?: number | null
@@ -62,11 +64,12 @@ export type Database = {
           music_file_url?: string | null
           status?: string | null
           title: string
-          upload_date?: string | null
           upc_irsc?: string | null
+          upload_date?: string | null
         }
         Update: {
           artist_id?: string | null
+          command?: string | null
           cover_art_url?: string | null
           created_at?: string | null
           duration?: number | null
@@ -75,8 +78,8 @@ export type Database = {
           music_file_url?: string | null
           status?: string | null
           title?: string
-          upload_date?: string | null
           upc_irsc?: string | null
+          upload_date?: string | null
         }
         Relationships: [
           {

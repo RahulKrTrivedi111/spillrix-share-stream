@@ -95,6 +95,7 @@ export function NewReleaseForm({ track, onSuccess }: NewReleaseFormProps) {
         status: track ? track.status : "pending",
         music_file_url: music_file_path || null,
         cover_art_url: cover_art_path || null,
+        artist_id: artistId, // Fix: Add missing artist_id
       };
 
       if (track) {
