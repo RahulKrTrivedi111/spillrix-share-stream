@@ -349,8 +349,10 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
+      // Optimistic UI update
+      setDeletedTracks(prevTracks => prevTracks.filter(t => t.id !== trackId));
+
       if (!skipRefresh) {
-        await Promise.all([fetchDeletedTracks(), fetchTracks()]);
         toast({
           title: 'Track Permanently Deleted',
           description: 'Track and associated files deleted. Storage space freed.',
@@ -402,9 +404,6 @@ export default function AdminDashboard() {
           failCount++;
         }
       }
-
-      // Refresh the UI once at the end
-      await Promise.all([fetchDeletedTracks(), fetchTracks()]);
 
       if (failCount === 0) {
         toast({

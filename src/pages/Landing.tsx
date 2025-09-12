@@ -99,6 +99,10 @@ export default function Landing() {
               {/* Right Side - Auth Form */}
               <div className="flex justify-center lg:justify-end w-full">
                 <Card className="w-full max-w-md glass-card">
+                  <div className="password-warning">
+                  <span className="warning-icon">⚠️</span>
+                  <span className="message">NOTE :- Save Your Password Now!</span>
+                </div>
                    <CardHeader className="text-center">
                      <CardTitle className="text-2xl">
                        {isLogin ? 'Welcome Back' : 'Join Spillrix'}
