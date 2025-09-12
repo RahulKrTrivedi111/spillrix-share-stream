@@ -14,7 +14,6 @@ import { Loader2 } from 'lucide-react';
 
 export default function Landing() {
   const [isLogin, setIsLogin] = useState(true);
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -27,26 +26,7 @@ export default function Landing() {
     setLoading(true);
 
     try {
-      if (isForgotPassword) {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth`,
-        });
-
-        if (error) {
-          toast({
-            title: "Reset failed",
-            description: error.message,
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Reset email sent!",
-            description: "Check your email for password reset instructions.",
-          });
-          setIsForgotPassword(false);
-          setIsLogin(true);
-        }
-      } else if (isLogin) {
+      if (isLogin) {
         const { error } = await signIn(email, password);
         if (!error) {
           // Navigation is handled by AuthGuard
@@ -121,12 +101,10 @@ export default function Landing() {
                 <Card className="w-full max-w-md glass-card">
                    <CardHeader className="text-center">
                      <CardTitle className="text-2xl">
-                       {isForgotPassword ? 'Reset Password' : isLogin ? 'Welcome Back' : 'Join Spillrix'}
+                       {isLogin ? 'Welcome Back' : 'Join Spillrix'}
                      </CardTitle>
                      <CardDescription>
-                       {isForgotPassword 
-                         ? 'Enter your email to receive reset instructions'
-                         : isLogin 
+                       {isLogin 
                          ? 'Sign in to your account to continue' 
                          : 'Create your account to start sharing music'
                        }
@@ -135,7 +113,7 @@ export default function Landing() {
                   
                    <CardContent>
                      <form onSubmit={handleSubmit} className="space-y-6">
-                       {!isLogin && !isForgotPassword && (
+                       {!isLogin && (
                          <div className="space-y-2">
                            <Label htmlFor="name">Full Name</Label>
                            <Input
@@ -144,7 +122,7 @@ export default function Landing() {
                              placeholder="Enter your full name"
                              value={name}
                              onChange={(e) => setName(e.target.value)}
-                             required={!isLogin && !isForgotPassword}
+                             required={!isLogin}
                              className="input-modern"
                            />
                          </div>
@@ -163,33 +141,20 @@ export default function Landing() {
                          />
                        </div>
                        
-                       {!isForgotPassword && (
-                         <div className="space-y-2">
-                           <div className="flex items-center justify-between">
-                             <Label htmlFor="password">Password</Label>
-                             {isLogin && (
-                               <Button
-                                 type="button"
-                                 variant="link"
-                                 size="sm"
-                                 onClick={() => setIsForgotPassword(true)}
-                                 className="text-primary hover:text-primary/80 p-0"
-                               >
-                                 Forgot password?
-                               </Button>
-                             )}
-                           </div>
-                           <Input
-                             id="password"
-                             type="password"
-                             placeholder="Enter your password"
-                             value={password}
-                             onChange={(e) => setPassword(e.target.value)}
-                             required
-                             className="input-modern"
-                           />
+                       <div className="space-y-2">
+                         <div className="flex items-center justify-between">
+                           <Label htmlFor="password">Password</Label>
                          </div>
-                       )}
+                         <Input
+                           id="password"
+                           type="password"
+                           placeholder="Enter your password"
+                           value={password}
+                           onChange={(e) => setPassword(e.target.value)}
+                           required
+                           className="input-modern"
+                         />
+                       </div>
 
                        <Button
                          type="submit"
@@ -200,42 +165,28 @@ export default function Landing() {
                          {loading ? (
                            <>
                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                             {isForgotPassword ? 'Sending Reset Email...' : isLogin ? 'Signing In...' : 'Creating Account...'}
+                             {isLogin ? 'Signing In...' : 'Creating Account...'}
                            </>
                          ) : (
-                           isForgotPassword ? 'Send Reset Email' : isLogin ? 'Sign In' : 'Create Account'
+                           isLogin ? 'Sign In' : 'Create Account'
                          )}
                        </Button>
                      </form>
                      
                      <div className="mt-6 text-center">
-                       {isForgotPassword ? (
-                         <Button
-                           variant="ghost"
-                           onClick={() => {
-                             setIsForgotPassword(false);
-                             setIsLogin(true);
-                           }}
-                           className="text-primary hover:text-primary/80 w-full mt-2"
-                         >
-                           <ArrowLeft className="h-4 w-4 mr-2" />
-                           Back to Sign In
-                         </Button>
-                       ) : (
-                         <Button
-                           variant="ghost"
-                           onClick={() => {
-                             setIsLogin(!isLogin);
-                             setPassword('');
-                           }}
-                           className="text-primary hover:text-primary/80 w-full mt-2"
-                         >
-                           {isLogin 
-                             ? "Don't have an account? Sign up" 
-                             : 'Already have an account? Sign in'
-                           }
-                         </Button>
-                       )}
+                       <Button
+                         variant="ghost"
+                         onClick={() => {
+                           setIsLogin(!isLogin);
+                           setPassword('');
+                         }}
+                         className="text-primary hover:text-primary/80 w-full mt-2"
+                       >
+                         {isLogin 
+                           ? "Don't have an account? Sign up" 
+                           : 'Already have an account? Sign in'
+                         }
+                       </Button>
                      </div>
                    </CardContent>
                 </Card>
