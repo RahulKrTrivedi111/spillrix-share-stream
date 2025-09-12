@@ -43,9 +43,12 @@ interface Track {
   artist_id: string;
   deleted_at?: string;
   deleted_by?: string;
-  profiles?: {
+  artist?: {
     name: string;
     email: string;
+  };
+  deleted_by_user?: {
+    name: string;
   };
 }
 
@@ -107,7 +110,7 @@ export default function AdminDashboard() {
         .from('tracks')
         .select(`
           *,
-          profiles (
+          artist:profiles!tracks_artist_id_fkey (
             name,
             email
           )
@@ -133,11 +136,11 @@ export default function AdminDashboard() {
         .from('tracks')
         .select(`
           *,
-          profiles!tracks_artist_id_fkey (
+          artist:profiles!tracks_artist_id_fkey (
             name,
             email
           ),
-          profiles!tracks_deleted_by_fkey (
+          deleted_by_user:profiles!tracks_deleted_by_fkey (
             name
           )
         `)
@@ -485,7 +488,7 @@ export default function AdminDashboard() {
   const filteredTracks = tracks.filter(track => {
     const matchesSearch = track.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          track.genre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (track.profiles?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+                         (track.artist?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || track.status === statusFilter;
     
@@ -757,8 +760,8 @@ export default function AdminDashboard() {
                                  )}
                                </div>
                              </TableCell>
-                            <TableCell className="font-medium">{track.title}</TableCell>
-                            <TableCell>{track.profiles?.name}</TableCell>
+                             <TableCell className="font-medium">{track.title}</TableCell>
+                             <TableCell>{track.artist?.name}</TableCell>
                             <TableCell>{track.genre}</TableCell>
                             <TableCell>{formatDuration(track.duration)}</TableCell>
                             <TableCell>{formatDate(track.upload_date)}</TableCell>
@@ -908,8 +911,8 @@ export default function AdminDashboard() {
                                   )}
                                 </div>
                               </TableCell>
-                              <TableCell className="font-medium">{track.title}</TableCell>
-                              <TableCell>{track.profiles?.name || 'Unknown'}</TableCell>
+                               <TableCell className="font-medium">{track.title}</TableCell>
+                               <TableCell>{track.artist?.name || 'Unknown'}</TableCell>
                               <TableCell>
                                 <Badge variant="outline">{track.genre || 'Unknown'}</Badge>
                               </TableCell>
@@ -919,9 +922,9 @@ export default function AdminDashboard() {
                                   {track.deleted_at ? formatDate(track.deleted_at) : 'Unknown'}
                                 </div>
                               </TableCell>
-                              <TableCell>
-                                {(track as any).profiles?.name || 'Unknown Admin'}
-                              </TableCell>
+                               <TableCell>
+                                 {track.deleted_by_user?.name || 'Unknown Admin'}
+                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex gap-1 justify-end">
                                   <Button
