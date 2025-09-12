@@ -23,7 +23,8 @@ import {
   Clock,
   Calendar,
   UserX,
-  UserCheck
+  UserCheck,
+  Image
 } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
@@ -271,6 +272,58 @@ export default function AdminDashboard() {
       toast({
         title: 'Download Failed',
         description: 'Failed to download track',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const downloadCoverArt = async (url: string) => {
+    try {
+      if (!url) {
+        toast({
+          title: 'No Cover Art',
+          description: 'This track has no cover art to download',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // If it's already a full URL, use it directly
+      if (url.startsWith('http')) {
+        window.open(url, '_blank');
+        return;
+      }
+
+      // For file paths, generate a signed URL from cover-art bucket
+      try {
+        const { data, error } = await supabase.storage
+          .from('cover-art')
+          .createSignedUrl(url, 60); // 60 seconds expiry
+
+        if (error) {
+          // Fallback to tracks bucket for older cover art
+          const { data: fallbackData, error: fallbackError } = await supabase.storage
+            .from('tracks')
+            .createSignedUrl(url, 60);
+
+          if (fallbackError) throw fallbackError;
+          window.open(fallbackData.signedUrl, '_blank');
+        } else {
+          window.open(data.signedUrl, '_blank');
+        }
+      } catch (storageError) {
+        console.error('Cover art storage error:', storageError);
+        toast({
+          title: 'Download Failed',
+          description: 'Failed to generate cover art download link',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Cover art download error:', error);
+      toast({
+        title: 'Download Failed',
+        description: 'Failed to download cover art',
         variant: 'destructive'
       });
     }
@@ -604,15 +657,26 @@ export default function AdminDashboard() {
                                     </Button>
                                   </>
                                 ) : null}
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => downloadTrack(track.music_file_url, `${track.title}.mp3`)}
-                                  className="touch-target"
-                                  title="Download"
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
+                                 <Button
+                                   size="sm"
+                                   variant="outline"
+                                   onClick={() => downloadTrack(track.music_file_url, `${track.title}.mp3`)}
+                                   className="touch-target"
+                                   title="Download Track"
+                                 >
+                                   <Download className="h-4 w-4" />
+                                 </Button>
+                                 {track.cover_art_url && (
+                                   <Button
+                                     size="sm"
+                                     variant="outline"
+                                     onClick={() => downloadCoverArt(track.cover_art_url!)}
+                                     className="touch-target"
+                                     title="Download Cover Art"
+                                   >
+                                     <Image className="h-4 w-4" />
+                                   </Button>
+                                 )}
                               </div>
                             </TableCell>
                           </TableRow>
