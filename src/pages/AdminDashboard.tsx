@@ -504,19 +504,26 @@ export default function AdminDashboard() {
                                 onCheckedChange={() => toggleTrackSelection(track.id)}
                               />
                             </TableCell>
-                            <TableCell>
-                              <div className="w-16 h-16 bg-muted rounded-lg overflow-hidden flex items-center justify-center">
-                                {track.cover_art_url ? (
-                                  <img 
-                                    src={track.cover_art_url} 
-                                    alt={`${track.title} cover`}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <Music className="h-6 w-6 text-muted-foreground" />
-                                )}
-                              </div>
-                            </TableCell>
+                             <TableCell>
+                               <div className="w-16 h-16 bg-muted rounded-lg overflow-hidden flex items-center justify-center">
+                                 {track.cover_art_url ? (
+                                   <img 
+                                     src={track.cover_art_url.startsWith('http') 
+                                       ? track.cover_art_url 
+                                       : `https://ctwauyndeushfyxzzaxd.supabase.co/storage/v1/object/public/tracks/${track.cover_art_url}`
+                                     } 
+                                     alt={`${track.title} cover`}
+                                     className="w-full h-full object-cover"
+                                     onError={(e) => {
+                                       e.currentTarget.style.display = 'none';
+                                       e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center"><svg class="h-6 w-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l6-6v13M9 19c0 1.1.9 2 2 2s2-.9 2-2M9 19H7c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2h2M15 19h2c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-2v6.5L15 9l2 2.5V19z"/></svg></div>';
+                                     }}
+                                   />
+                                 ) : (
+                                   <Music className="h-6 w-6 text-muted-foreground" />
+                                 )}
+                               </div>
+                             </TableCell>
                             <TableCell className="font-medium">{track.title}</TableCell>
                             <TableCell>{track.profiles?.name}</TableCell>
                             <TableCell>{track.genre}</TableCell>
