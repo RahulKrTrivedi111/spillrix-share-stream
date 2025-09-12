@@ -94,10 +94,10 @@ export function NewReleaseForm({ track, onSuccess }: NewReleaseFormProps) {
         title,
         genre,
         upc_irsc: upc_irsc || null,
-        status: track ? track.status : "pending",
+        status: "pending", // Always set to pending when creating or updating
         music_file_url: music_file_path || null,
         cover_art_url: cover_art_path || null,
-        artist_id: artistId, // Fix: Add missing artist_id
+        artist_id: artistId,
       };
 
       if (track) {
