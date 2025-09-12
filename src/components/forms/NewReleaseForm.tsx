@@ -12,9 +12,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   title: z.string().min(2, { message: "Title must be at least 2 characters." }),
@@ -35,6 +36,7 @@ interface NewReleaseFormProps {
 }
 
 export function NewReleaseForm({ track, onSuccess }: NewReleaseFormProps) {
+  const { user } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -62,8 +64,8 @@ export function NewReleaseForm({ track, onSuccess }: NewReleaseFormProps) {
 
       const coverArtFile = cover_art?.[0];
 
-      const user = await supabase.auth.getUser();
-      const artistId = user?.data?.user?.id;
+      // Get artist ID from auth context instead of making additional API call
+      const artistId = user?.id;
 
       if (!artistId) {
         toast({ title: "Error", description: "You must be logged in to create a release." });
@@ -105,8 +107,16 @@ export function NewReleaseForm({ track, onSuccess }: NewReleaseFormProps) {
           .eq("id", track.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("tracks").insert([upsertData]);
-        if (error) throw error;
+        // For new tracks, ensure all required fields are set
+        const insertData = {
+          ...upsertData,
+          artist_id: artistId, // Explicitly set artist_id for new tracks
+        };
+        const { error } = await supabase.from("tracks").insert([insertData]);
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
       }
 
       toast({ title: "Success", description: "Release submitted successfully." });
