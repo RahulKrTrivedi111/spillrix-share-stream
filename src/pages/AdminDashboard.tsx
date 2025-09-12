@@ -298,43 +298,50 @@ export default function AdminDashboard() {
     }
   };
 
-  const permanentlyDeleteTrack = async (trackId: string) => {
+  const permanentlyDeleteTrack = async (trackId: string, skipRefresh = false) => {
     try {
       const track = deletedTracks.find(t => t.id === trackId);
-      if (!track) return;
+      if (!track) return false;
 
       // Delete files from storage
       const deletePromises = [];
       
       if (track.music_file_url) {
-        const musicPath = track.music_file_url.includes('http') 
-          ? track.music_file_url.split('/').pop()?.split('?')[0]
-          : track.music_file_url;
+        // Better file path extraction
+        let musicPath = track.music_file_url;
+        if (musicPath.includes('http')) {
+          const url = new URL(musicPath);
+          musicPath = url.pathname.split('/').pop()?.split('?')[0] || '';
+        }
         
         if (musicPath) {
           deletePromises.push(
-            supabase.storage.from('music-files').remove([musicPath]),
-            supabase.storage.from('tracks').remove([musicPath])
+            supabase.storage.from('music-files').remove([musicPath]).catch(() => null),
+            supabase.storage.from('tracks').remove([musicPath]).catch(() => null)
           );
         }
       }
 
       if (track.cover_art_url) {
-        const coverPath = track.cover_art_url.includes('http')
-          ? track.cover_art_url.split('/').pop()?.split('?')[0]
-          : track.cover_art_url;
+        // Better file path extraction
+        let coverPath = track.cover_art_url;
+        if (coverPath.includes('http')) {
+          const url = new URL(coverPath);
+          coverPath = url.pathname.split('/').pop()?.split('?')[0] || '';
+        }
         
         if (coverPath) {
           deletePromises.push(
-            supabase.storage.from('cover-art').remove([coverPath]),
-            supabase.storage.from('tracks').remove([coverPath])
+            supabase.storage.from('cover-art').remove([coverPath]).catch(() => null),
+            supabase.storage.from('tracks').remove([coverPath]).catch(() => null)
           );
         }
       }
 
+      // Wait for file deletions to complete (ignore errors)
       await Promise.allSettled(deletePromises);
 
-      // Delete track record
+      // Delete track record from database
       const { error } = await supabase
         .from('tracks')
         .delete()
@@ -342,30 +349,75 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
-      await fetchDeletedTracks();
-      toast({
-        title: 'Track Permanently Deleted',
-        description: 'Track and associated files deleted. Storage space freed.',
-      });
+      if (!skipRefresh) {
+        await Promise.all([fetchDeletedTracks(), fetchTracks()]);
+        toast({
+          title: 'Track Permanently Deleted',
+          description: 'Track and associated files deleted. Storage space freed.',
+        });
+      }
+      
+      return true;
     } catch (error) {
       console.error('Error permanently deleting track:', error);
-      toast({
-        title: 'Delete Failed',
-        description: 'Failed to permanently delete track',
-        variant: 'destructive'
-      });
+      if (!skipRefresh) {
+        toast({
+          title: 'Delete Failed',
+          description: 'Failed to permanently delete track',
+          variant: 'destructive'
+        });
+      }
+      return false;
     }
   };
 
   const emptyRecycleBin = async () => {
-    try {
-      for (const track of deletedTracks) {
-        await permanentlyDeleteTrack(track.id);
-      }
+    if (deletedTracks.length === 0) {
       toast({
-        title: 'Recycle Bin Emptied',
-        description: 'All deleted tracks have been permanently removed',
+        title: 'Recycle Bin Empty',
+        description: 'No tracks to delete',
+        variant: 'destructive'
       });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete all ${deletedTracks.length} tracks? This action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      // Get snapshot of tracks to delete
+      const tracksToDelete = [...deletedTracks];
+      let successCount = 0;
+      let failCount = 0;
+
+      // Process deletions
+      for (const track of tracksToDelete) {
+        const success = await permanentlyDeleteTrack(track.id, true);
+        if (success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      }
+
+      // Refresh the UI once at the end
+      await Promise.all([fetchDeletedTracks(), fetchTracks()]);
+
+      if (failCount === 0) {
+        toast({
+          title: 'Recycle Bin Emptied',
+          description: `All ${successCount} tracks permanently deleted`,
+        });
+      } else {
+        toast({
+          title: 'Partially Completed',
+          description: `${successCount} tracks deleted, ${failCount} failed`,
+          variant: 'destructive'
+        });
+      }
     } catch (error) {
       console.error('Error emptying recycle bin:', error);
       toast({
@@ -854,11 +906,7 @@ export default function AdminDashboard() {
                   {deletedTracks.length > 0 && (
                     <Button 
                       variant="destructive" 
-                      onClick={() => {
-                        if (window.confirm('Permanently delete all tracks in recycle bin? This will free up storage space but cannot be undone.')) {
-                          emptyRecycleBin();
-                        }
-                      }}
+                      onClick={emptyRecycleBin}
                     >
                       Empty Recycle Bin
                     </Button>
@@ -941,7 +989,7 @@ export default function AdminDashboard() {
                                     variant="destructive"
                                     onClick={() => {
                                       if (window.confirm('Permanently delete this track? This will free up storage space but cannot be undone.')) {
-                                        permanentlyDeleteTrack(track.id);
+                                        permanentlyDeleteTrack(track.id, false);
                                       }
                                     }}
                                     className="touch-target"
