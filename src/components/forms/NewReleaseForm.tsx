@@ -121,8 +121,8 @@ export function NewReleaseForm({ track, onSuccess }: NewReleaseFormProps) {
 
       toast({ title: "Success", description: "Release submitted successfully." });
       onSuccess?.();
-    } catch (error) {
-      toast({ title: "Error", description: error instanceof Error ? error.message : "An unknown error occurred." });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message });
     }
   }
 
