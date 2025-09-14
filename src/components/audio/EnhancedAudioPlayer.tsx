@@ -8,9 +8,10 @@ interface EnhancedAudioPlayerProps {
   src: string;
   title?: string;
   className?: string;
+  onDurationChange?: (duration: number) => void;
 }
 
-export function EnhancedAudioPlayer({ src, title, className }: EnhancedAudioPlayerProps) {
+export function EnhancedAudioPlayer({ src, title, className, onDurationChange }: EnhancedAudioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -26,8 +27,12 @@ export function EnhancedAudioPlayer({ src, title, className }: EnhancedAudioPlay
     if (!audio) return;
 
     const setAudioData = () => {
-      setDuration(audio.duration || 0);
+      const newDuration = audio.duration || 0;
+      setDuration(newDuration);
       setCurrentTime(audio.currentTime || 0);
+      if (onDurationChange) {
+        onDurationChange(newDuration);
+      }
     };
 
     const setAudioTime = () => setCurrentTime(audio.currentTime || 0);
@@ -68,7 +73,7 @@ export function EnhancedAudioPlayer({ src, title, className }: EnhancedAudioPlay
       audio.removeEventListener('error', handleError);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [src]);
+  }, [src, onDurationChange]);
 
   const togglePlayPause = async () => {
     const audio = audioRef.current;
