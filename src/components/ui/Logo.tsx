@@ -1,5 +1,5 @@
 import React from 'react';
-import logo from '../../spillrix-logo.png';
+import logo from '../../Untitled design (6).png';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
@@ -13,12 +13,7 @@ const Logo: React.FC<LogoProps> = ({ size = 'md' }) => {
     className = 'h-10 w-auto';
   }
 
-  return (
-    <div className="flex items-center space-x-2">
-      <img src={logo} alt="Spillrix Logo" className={className} />
-      <span className="text-xl font-semibold text-gray-800 dark:text-white">Spillrix Distribution</span>
-    </div>
-  );
+  return <img src={logo} alt="Spillrix Logo" className={className} />;
 };
 
 export default Logo;

@@ -18,8 +18,27 @@
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
 .card {
   padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
 }
 
 .password-warning {
@@ -37,9 +56,21 @@
 .password-warning .warning-icon {
   display: inline-block;
   margin-right: 0.25rem;
+  animation: blink 4s linear infinite;
 }
 
 .password-warning .message {
   display: inline-block;
   white-space: nowrap;
+  animation: typewriter 8s steps(40) 1s forwards;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
 }

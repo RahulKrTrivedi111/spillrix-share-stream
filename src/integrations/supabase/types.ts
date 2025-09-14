@@ -17,28 +17,22 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string | null
-          deleted_at: string | null
           email: string | null
           id: string
-          is_active: boolean | null
           name: string | null
           role: string | null
         }
         Insert: {
           created_at?: string | null
-          deleted_at?: string | null
           email?: string | null
           id: string
-          is_active?: boolean | null
           name?: string | null
           role?: string | null
         }
         Update: {
           created_at?: string | null
-          deleted_at?: string | null
           email?: string | null
           id?: string
-          is_active?: boolean | null
           name?: string | null
           role?: string | null
         }
@@ -50,6 +44,8 @@ export type Database = {
           command: string | null
           cover_art_url: string | null
           created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           duration: number | null
           genre: string | null
           id: string
@@ -64,6 +60,8 @@ export type Database = {
           command?: string | null
           cover_art_url?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           duration?: number | null
           genre?: string | null
           id?: string
@@ -78,6 +76,8 @@ export type Database = {
           command?: string | null
           cover_art_url?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           duration?: number | null
           genre?: string | null
           id?: string
@@ -94,7 +94,14 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
+          {
+            foreignKeyName: "tracks_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
