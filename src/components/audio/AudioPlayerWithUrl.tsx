@@ -7,9 +7,10 @@ interface AudioPlayerWithUrlProps {
   filePath: string;
   title: string;
   className?: string;
+  onDurationChange?: (duration: number) => void;
 }
 
-export function AudioPlayerWithUrl({ filePath, title, className }: AudioPlayerWithUrlProps) {
+export function AudioPlayerWithUrl({ filePath, title, className, onDurationChange }: AudioPlayerWithUrlProps) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -58,5 +59,5 @@ export function AudioPlayerWithUrl({ filePath, title, className }: AudioPlayerWi
     );
   }
 
-  return <EnhancedAudioPlayer src={audioUrl} title={title} className={className} />;
+  return <EnhancedAudioPlayer src={audioUrl} title={title} className={className} onDurationChange={onDurationChange} />;
 }
