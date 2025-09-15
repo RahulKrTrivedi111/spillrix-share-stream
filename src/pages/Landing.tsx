@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,30 +15,56 @@ import { toast } from '@/hooks/use-toast';
 import { Music, Upload, Users, Shield, ArrowLeft } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
+const formSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email address' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
+  name: z.string().optional(),
+});
+
+import { usePerformance } from '@/hooks/use-performance';
+
 export default function Landing() {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const { isSlowConnection } = usePerformance();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+  });
+
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
     setLoading(true);
 
     try {
       if (isLogin) {
-        const { error } = await signIn(email, password);
-        if (!error) {
-          // Navigation is handled by AuthGuard
+        const { error } = await signIn(data.email, data.password);
+        if (error) {
+          toast({
+            title: 'Sign In Failed',
+            description: error.message,
+            variant: 'destructive',
+          });
         }
       } else {
-        const { error } = await signUp(email, password, name);
-        if (!error) {
+        const { error } = await signUp(data.email, data.password, data.name);
+        if (error) {
+          toast({
+            title: 'Sign Up Failed',
+            description: error.message,
+            variant: 'destructive',
+          });
+        } else {
           setIsLogin(true);
-          setPassword('');
+          toast({
+            title: 'Sign Up Successful',
+            description: 'Please check your email to verify your account.',
+          });
         }
       }
     } finally {
@@ -45,12 +74,11 @@ export default function Landing() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen hero-gradient">
+      <div className={`min-h-screen ${isSlowConnection ? '' : 'hero-gradient'}`}>
         {/* Header */}
         <header className="border-b border-border/50 backdrop-blur-sm bg-background/80">
           <div className="mobile-container py-4 flex items-center">
             <Logo size="md" />
-            <span className="text-lg font-semibold ml-2">Spillrix Distribution</span>
           </div>
         </header>
 
@@ -116,7 +144,7 @@ export default function Landing() {
                    </CardHeader>
                   
                    <CardContent>
-                     <form onSubmit={handleSubmit} className="space-y-6">
+                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                        {!isLogin && (
                          <div className="space-y-2">
                            <Label htmlFor="name">Full Name</Label>
@@ -124,8 +152,7 @@ export default function Landing() {
                              id="name"
                              type="text"
                              placeholder="Enter your full name"
-                             value={name}
-                             onChange={(e) => setName(e.target.value)}
+                             {...register('name')}
                              required={!isLogin}
                              className="input-modern"
                            />
@@ -138,11 +165,13 @@ export default function Landing() {
                            id="email"
                            type="email"
                            placeholder="Enter your email"
-                           value={email}
-                           onChange={(e) => setEmail(e.target.value)}
+                           {...register('email')}
                            required
                            className="input-modern"
                          />
+                         {errors.email && (
+                           <p className="text-sm text-destructive">{errors.email.message}</p>
+                         )}
                        </div>
                        
                        <div className="space-y-2">
@@ -153,11 +182,13 @@ export default function Landing() {
                            id="password"
                            type="password"
                            placeholder="Enter your password"
-                           value={password}
-                           onChange={(e) => setPassword(e.target.value)}
+                           {...register('password')}
                            required
                            className="input-modern"
                          />
+                         {errors.password && (
+                           <p className="text-sm text-destructive">{errors.password.message}</p>
+                         )}
                        </div>
 
                        <Button
@@ -182,7 +213,6 @@ export default function Landing() {
                          variant="ghost"
                          onClick={() => {
                            setIsLogin(!isLogin);
-                           setPassword('');
                          }}
                          className="text-primary hover:text-primary/80 w-full mt-2"
                        >

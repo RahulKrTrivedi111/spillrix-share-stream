@@ -10,12 +10,12 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children, requireAuth = false, requireAdmin = false }: AuthGuardProps) {
-  const { user, profile, loading, isAdmin } = useAuth();
+  const { user, profile, loading, isAdmin, isInitialized } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    if (loading) return;
+    if (!isInitialized) return; // Wait for auth to be initialized
 
     // If auth is required but user is not authenticated
     if (requireAuth && !user) {
@@ -48,9 +48,9 @@ export function AuthGuard({ children, requireAuth = false, requireAdmin = false 
       }
       return;
     }
-  }, [user, profile, loading, isAdmin, navigate, location, requireAuth, requireAdmin]);
+  }, [user, profile, isInitialized, isAdmin, navigate, location, requireAuth, requireAdmin]);
 
-  if (loading) {
+  if (loading || !isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">

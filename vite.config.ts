@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    origin: 'http://localhost:8081', // Replace with your app's origin
   },
   plugins: [
     react(),

@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { AuthGuard } from '@/components/auth/AuthGuard';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import Logo from '@/components/ui/Logo';
-import { AudioPlayerWithUrl } from '@/components/audio/AudioPlayerWithUrl';
-import { toast } from '@/hooks/use-toast';
+import { useAuth } from './../contexts/AuthContext';
+import { AuthGuard } from './../components/auth/AuthGuard';
+import { supabase } from './../integrations/supabase/client';
+import { Button } from './../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './../components/ui/card';
+import { Input } from './../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './../components/ui/table';
+import { Badge } from './../components/ui/badge';
+import { Checkbox } from './../components/ui/checkbox';
+import Logo from './../components/ui/Logo';
+import { AudioPlayerWithUrl } from './../components/audio/AudioPlayerWithUrl';
+import { toast } from './../hooks/use-toast';
 import {
   LogOut,
   Users,
@@ -22,14 +22,11 @@ import {
   X,
   Clock,
   Calendar,
-  UserX,
-  UserCheck,
   Image,
-  Trash2,
-  RotateCcw
+  Trash2
 } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
-import { generateMusicUrl, generateCoverArtUrl } from '@/lib/storage-utils';
+import { generateMusicUrl, generateCoverArtUrl } from './../lib/storage-utils';
 
 interface Track {
   id: string;
@@ -41,14 +38,9 @@ interface Track {
   status: 'pending' | 'approved' | 'rejected';
   upload_date: string;
   artist_id: string;
-  deleted_at?: string;
-  deleted_by?: string;
   artist?: {
     name: string;
     email: string;
-  };
-  deleted_by_user?: {
-    name: string;
   };
 }
 
@@ -60,26 +52,84 @@ interface Profile {
   created_at: string;
 }
 
+// Global state for tracks, profiles
+let globalTracks: Track[] = [];
+let globalProfiles: Profile[] = [];
+
+const fetchTracks = async (setTracks: React.Dispatch<React.SetStateAction<Track[]>>, toast: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('tracks')
+      .select(`
+        *,
+        artist:profiles!tracks_artist_id_fkey (
+          name,
+          email
+        )
+      `)
+      .order('upload_date', { ascending: false });
+
+    if (error) throw error;
+    globalTracks = (data as any) || [];
+    setTracks(globalTracks);
+  } catch (error) {
+    console.error('Error fetching tracks:', error);
+    toast({
+      title: 'Error',
+      description: 'Failed to fetch tracks',
+      variant: 'destructive'
+    });
+  }
+};
+
+const fetchProfiles = async (setProfiles: React.Dispatch<React.SetStateAction<Profile[]>>, toast: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    globalProfiles = (data as Profile[]) || [];
+    setProfiles(globalProfiles);
+  } catch (error) {
+    console.error('Error fetching profiles:', error);
+    toast({
+      title: 'Error',
+      description: 'Failed to fetch users',
+      variant: 'destructive'
+    });
+  }
+};
+
 export default function AdminDashboard() {
   const { profile, signOut } = useAuth();
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [deletedTracks, setDeletedTracks] = useState<Track[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [tracks, setTracks] = useState<Track[]>(globalTracks);
+  const [profiles, setProfiles] = useState<Profile[]>(globalProfiles);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedTracks, setSelectedTracks] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'tracks' | 'users' | 'recycle-bin'>('tracks');
+  const [activeTab, setActiveTab] = useState<'tracks' | 'users'>('tracks');
 
   useEffect(() => {
-    fetchData();
+    const fetchDataAndSetState = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchTracks(setTracks, toast),
+        fetchProfiles(setProfiles, toast)
+      ]);
+      setLoading(false);
+    };
+
+    fetchDataAndSetState();
 
     const tracksChannel = supabase
       .channel('admin-tracks-changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'tracks' },
-        () => { fetchTracks(); }
+        () => { fetchTracks(setTracks, toast); }
       )
       .subscribe();
 
@@ -88,7 +138,7 @@ export default function AdminDashboard() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'profiles' },
-        () => { fetchProfiles(); }
+        () => { fetchProfiles(setProfiles, toast); }
       )
       .subscribe();
 
@@ -97,86 +147,6 @@ export default function AdminDashboard() {
       supabase.removeChannel(profilesChannel);
     };
   }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    await Promise.all([fetchTracks(), fetchProfiles(), fetchDeletedTracks()]);
-    setLoading(false);
-  };
-
-  const fetchTracks = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tracks')
-        .select(`
-          *,
-          artist:profiles!tracks_artist_id_fkey (
-            name,
-            email
-          )
-        `)
-        .is('deleted_at', null)
-        .order('upload_date', { ascending: false });
-
-      if (error) throw error;
-      setTracks((data as any) || []);
-    } catch (error) {
-      console.error('Error fetching tracks:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch tracks',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const fetchDeletedTracks = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tracks')
-        .select(`
-          *,
-          artist:profiles!tracks_artist_id_fkey (
-            name,
-            email
-          ),
-          deleted_by_user:profiles!tracks_deleted_by_fkey (
-            name
-          )
-        `)
-        .not('deleted_at', 'is', null)
-        .order('deleted_at', { ascending: false });
-
-      if (error) throw error;
-      setDeletedTracks((data as any) || []);
-    } catch (error) {
-      console.error('Error fetching deleted tracks:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch deleted tracks',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const fetchProfiles = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setProfiles((data as Profile[]) || []);
-    } catch (error) {
-      console.error('Error fetching profiles:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch users',
-        variant: 'destructive'
-      });
-    }
-  };
 
   const updateTrackStatus = async (trackId: string, status: 'approved' | 'rejected' | 'pending') => {
     try {
@@ -236,192 +206,6 @@ export default function AdminDashboard() {
       toast({
         title: 'Bulk Update Failed',
         description: 'Failed to update selected tracks',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const moveToRecycleBin = async (trackId: string) => {
-    try {
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) throw new Error('User not authenticated');
-
-      const { error } = await supabase
-        .from('tracks')
-        .update({ 
-          deleted_at: new Date().toISOString(),
-          deleted_by: data.user.id 
-        })
-        .eq('id', trackId);
-
-      if (error) throw error;
-
-      await fetchData();
-      toast({
-        title: 'Track Moved to Recycle Bin',
-        description: 'Track can be restored from the recycle bin',
-      });
-    } catch (error) {
-      console.error('Error moving track to recycle bin:', error);
-      toast({
-        title: 'Move Failed',
-        description: 'Failed to move track to recycle bin',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const restoreTrack = async (trackId: string) => {
-    try {
-      const { error } = await supabase
-        .from('tracks')
-        .update({ 
-          deleted_at: null,
-          deleted_by: null 
-        })
-        .eq('id', trackId);
-
-      if (error) throw error;
-
-      await fetchData();
-      toast({
-        title: 'Track Restored',
-        description: 'Track has been restored successfully',
-      });
-    } catch (error) {
-      console.error('Error restoring track:', error);
-      toast({
-        title: 'Restore Failed',
-        description: 'Failed to restore track',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const permanentlyDeleteTrack = async (trackId: string, skipRefresh = false) => {
-    try {
-      const track = deletedTracks.find(t => t.id === trackId);
-      if (!track) return false;
-
-      // Delete files from storage
-      const deletePromises = [];
-      
-      if (track.music_file_url) {
-        // Better file path extraction
-        let musicPath = track.music_file_url;
-        if (musicPath.includes('http')) {
-          const url = new URL(musicPath);
-          musicPath = url.pathname.split('/').pop()?.split('?')[0] || '';
-        }
-        
-        if (musicPath) {
-          deletePromises.push(
-            supabase.storage.from('music-files').remove([musicPath]).catch(() => null),
-            supabase.storage.from('tracks').remove([musicPath]).catch(() => null)
-          );
-        }
-      }
-
-      if (track.cover_art_url) {
-        // Better file path extraction
-        let coverPath = track.cover_art_url;
-        if (coverPath.includes('http')) {
-          const url = new URL(coverPath);
-          coverPath = url.pathname.split('/').pop()?.split('?')[0] || '';
-        }
-        
-        if (coverPath) {
-          deletePromises.push(
-            supabase.storage.from('cover-art').remove([coverPath]).catch(() => null),
-            supabase.storage.from('tracks').remove([coverPath]).catch(() => null)
-          );
-        }
-      }
-
-      // Wait for file deletions to complete (ignore errors)
-      await Promise.allSettled(deletePromises);
-
-      // Delete track record from database
-      const { error } = await supabase
-        .from('tracks')
-        .delete()
-        .eq('id', trackId);
-
-      if (error) throw error;
-
-      // Optimistic UI update
-      setDeletedTracks(prevTracks => prevTracks.filter(t => t.id !== trackId));
-
-      if (!skipRefresh) {
-        toast({
-          title: 'Track Permanently Deleted',
-          description: 'Track and associated files deleted. Storage space freed.',
-        });
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error permanently deleting track:', error);
-      if (!skipRefresh) {
-        toast({
-          title: 'Delete Failed',
-          description: 'Failed to permanently delete track',
-          variant: 'destructive'
-        });
-      }
-      return false;
-    }
-  };
-
-  const emptyRecycleBin = async () => {
-    if (deletedTracks.length === 0) {
-      toast({
-        title: 'Recycle Bin Empty',
-        description: 'No tracks to delete',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Are you sure you want to permanently delete all ${deletedTracks.length} tracks? This action cannot be undone.`
-    );
-    
-    if (!confirmed) return;
-
-    try {
-      // Get snapshot of tracks to delete
-      const tracksToDelete = [...deletedTracks];
-      let successCount = 0;
-      let failCount = 0;
-
-      // Process deletions
-      for (const track of tracksToDelete) {
-        const success = await permanentlyDeleteTrack(track.id, true);
-        if (success) {
-          successCount++;
-        } else {
-          failCount++;
-        }
-      }
-
-      if (failCount === 0) {
-        toast({
-          title: 'Recycle Bin Emptied',
-          description: `All ${successCount} tracks permanently deleted`,
-        });
-      } else {
-        toast({
-          title: 'Partially Completed',
-          description: `${successCount} tracks deleted, ${failCount} failed`,
-          variant: 'destructive'
-        });
-      }
-    } catch (error) {
-      console.error('Error emptying recycle bin:', error);
-      toast({
-        title: 'Empty Failed',
-        description: 'Failed to empty recycle bin',
         variant: 'destructive'
       });
     }
@@ -511,31 +295,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const toggleUserStatus = async (userId: string, currentRole: string) => {
-    const newRole = currentRole === 'artist' ? 'inactive' : 'artist';
-    
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      toast({
-        title: 'User Status Updated',
-        description: `User ${newRole === 'inactive' ? 'deactivated' : 'reactivated'}`,
-      });
-    } catch (error) {
-      console.error('Error updating user status:', error);
-      toast({
-        title: 'Update Failed',
-        description: 'Failed to update user status',
-        variant: 'destructive'
-      });
-    }
-  };
-
   const filteredTracks = tracks.filter(track => {
     const matchesSearch = track.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          track.genre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -589,7 +348,6 @@ export default function AdminDashboard() {
     pendingTracks: tracks.filter(t => t.status === 'pending').length,
     approvedTracks: tracks.filter(t => t.status === 'approved').length,
     rejectedTracks: tracks.filter(t => t.status === 'rejected').length,
-    deletedTracks: deletedTracks.length,
     totalUsers: profiles.length,
     activeUsers: profiles.filter(p => p.role === 'artist').length,
     inactiveUsers: profiles.filter(p => p.role === 'inactive').length
@@ -602,7 +360,6 @@ export default function AdminDashboard() {
           <div className="mobile-container py-4 flex items-center justify-between">
             <div className="flex items-center">
               <Logo size="md" />
-              <span className="text-lg font-semibold ml-2">Spillrix Distribution</span>
             </div>
             <div className="flex items-center gap-2 md:gap-4">
               <span className="hidden sm:inline text-sm text-muted-foreground">Admin Panel</span>
@@ -673,14 +430,6 @@ export default function AdminDashboard() {
             >
               <Music className="h-4 w-4 mr-2" />
               Track Management
-            </Button>
-            <Button
-              variant={activeTab === 'recycle-bin' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('recycle-bin')}
-              className="w-full sm:w-auto touch-target"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Recycle Bin ({stats.deletedTracks})
             </Button>
             <Button
               variant={activeTab === 'users' ? 'default' : 'outline'}
@@ -868,139 +617,11 @@ export default function AdminDashboard() {
                                       <Image className="h-4 w-4" />
                                     </Button>
                                   )}
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => {
-                                      if (window.confirm('Move this track to recycle bin?')) {
-                                        moveToRecycleBin(track.id);
-                                      }
-                                    }}
-                                    className="touch-target"
-                                    title="Move to Recycle Bin"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
                               </div>
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ) : activeTab === 'recycle-bin' ? (
-            <Card className="card-modern">
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Recycle Bin</CardTitle>
-                    <CardDescription>
-                      Deleted tracks that can be restored or permanently deleted
-                    </CardDescription>
-                  </div>
-                  {deletedTracks.length > 0 && (
-                    <Button 
-                      variant="destructive" 
-                      onClick={emptyRecycleBin}
-                    >
-                      Empty Recycle Bin
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
-              
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  </div>
-                ) : deletedTracks.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Trash2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No deleted tracks</p>
-                    <p className="text-sm">Deleted tracks will appear here</p>
-                  </div>
-                ) : (
-                  <div className="mobile-table">
-                    <div className="mobile-table-content">
-                      <Table className="min-w-[1000px] lg:min-w-full">
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-20">Cover Art</TableHead>
-                            <TableHead>Title</TableHead>
-                            <TableHead>Artist</TableHead>
-                            <TableHead>Genre</TableHead>
-                            <TableHead>Deleted Date</TableHead>
-                            <TableHead>Deleted By</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {deletedTracks.map((track) => (
-                            <TableRow key={track.id}>
-                              <TableCell>
-                                <div className="w-16 h-16 bg-muted rounded-lg overflow-hidden flex items-center justify-center">
-                                  {track.cover_art_url ? (
-                                    <img 
-                                      src={track.cover_art_url.startsWith('http') 
-                                        ? track.cover_art_url 
-                                        : `https://ctwauyndeushfyxzzaxd.supabase.co/storage/v1/object/public/cover-art/${track.cover_art_url}`
-                                      }
-                                      alt={`${track.title} cover`}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <Music className="h-8 w-8 text-muted-foreground" />
-                                  )}
-                                </div>
-                              </TableCell>
-                               <TableCell className="font-medium">{track.title}</TableCell>
-                               <TableCell>{track.artist?.name || 'Unknown'}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{track.genre || 'Unknown'}</Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {track.deleted_at ? formatDate(track.deleted_at) : 'Unknown'}
-                                </div>
-                              </TableCell>
-                               <TableCell>
-                                 {track.deleted_by_user?.name || 'Unknown Admin'}
-                               </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex gap-1 justify-end">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => restoreTrack(track.id)}
-                                    className="touch-target"
-                                    title="Restore Track"
-                                  >
-                                    <RotateCcw className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => {
-                                      if (window.confirm('Permanently delete this track? This will free up storage space but cannot be undone.')) {
-                                        permanentlyDeleteTrack(track.id, false);
-                                      }
-                                    }}
-                                    className="touch-target"
-                                    title="Permanently Delete"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
                       </Table>
                     </div>
                   </div>
@@ -1031,7 +652,6 @@ export default function AdminDashboard() {
                           <TableHead>Email</TableHead>
                           <TableHead>Role</TableHead>
                           <TableHead>Join Date</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1049,26 +669,6 @@ export default function AdminDashboard() {
                                 <Calendar className="h-3 w-3" />
                                 {formatDate(user.created_at)}
                               </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {user.role !== 'admin' && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => toggleUserStatus(user.id, user.role)}
-                                  className={`touch-target ${user.role === 'inactive' 
-                                    ? "text-success hover:bg-success hover:text-success-foreground" 
-                                    : "text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                                  }`}
-                                  title={user.role === 'inactive' ? 'Reactivate User' : 'Deactivate User'}
-                                >
-                                  {user.role === 'inactive' ? (
-                                    <UserCheck className="h-4 w-4" />
-                                  ) : (
-                                    <UserX className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              )}
                             </TableCell>
                           </TableRow>
                         ))}
