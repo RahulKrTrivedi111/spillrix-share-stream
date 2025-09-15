@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import Logo from '@/components/ui/Logo';
-import { AudioPlayer } from '@/components/audio/AudioPlayer';
+import { AudioPlayerWithUrl } from '@/components/audio/AudioPlayerWithUrl';
 import { toast } from '@/hooks/use-toast';
 import { Upload, LogOut, Trash2, Music, Calendar, Clock, Edit } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
@@ -15,11 +15,12 @@ import { NewReleaseForm } from '@/components/forms/NewReleaseForm';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tables } from '@/integrations/supabase/types';
 
-interface Track extends Tables<"tracks"> {}
+type Track = Omit<Tables<'tracks'>, 'deleted_at' | 'deleted_by'>;
 
 export default function ArtistDashboard() {
   const { profile, signOut } = useAuth();
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [durations, setDurations] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [editingTrack, setEditingTrack] = useState<Track | undefined>(undefined);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -59,28 +60,15 @@ export default function ArtistDashboard() {
     try {
       const { data, error } = await supabase
         .from('tracks')
-        .select('*')
+        .select('id, artist_id, title, genre, duration, upload_date, status, cover_art_url, music_file_url, upc_irsc, command')
         .eq('artist_id', profile.id)
         .order('upload_date', { ascending: false });
 
       if (error) throw error;
 
       const enhancedTracks = data.map(track => {
-        let musicPublicUrl = '';
-        if (track.music_file_url && !track.music_file_url.startsWith('http')) {
-          musicPublicUrl = supabase.storage.from('music-files').getPublicUrl(track.music_file_url).data.publicUrl;
-        } else {
-          musicPublicUrl = track.music_file_url || '';
-        }
-
-        let coverArtPublicUrl = '';
-        if (track.cover_art_url && !track.cover_art_url.startsWith('http')) {
-          coverArtPublicUrl = supabase.storage.from('cover-art').getPublicUrl(track.cover_art_url).data.publicUrl;
-        } else {
-          coverArtPublicUrl = track.cover_art_url || '';
-        }
-
-        return { ...track, music_file_url: musicPublicUrl, cover_art_url: coverArtPublicUrl };
+        const coverArtPublicUrl = track.cover_art_url ? supabase.storage.from('cover-art').getPublicUrl(track.cover_art_url).data.publicUrl : '';
+        return { ...track, cover_art_url: coverArtPublicUrl };
       });
 
       setTracks((enhancedTracks as Track[]) || []);
@@ -98,18 +86,36 @@ export default function ArtistDashboard() {
 
   const deleteTrack = async (trackId: string) => {
     try {
-      const { error } = await supabase
+      // Get the track data to get the music_file_url and cover_art_url
+      const { data: trackData, error: trackError } = await supabase
+        .from('tracks')
+        .select('music_file_url, cover_art_url')
+        .eq('id', trackId)
+        .single();
+
+      if (trackError) throw trackError;
+
+      // Delete the track from storage
+      const { error: storageError } = await supabase
+        .storage
+        .from('tracks')
+        .remove([trackData.music_file_url, trackData.cover_art_url]);
+
+      if (storageError) throw storageError;
+
+      // Delete the track from the database
+      const { error: dbError } = await supabase
         .from('tracks')
         .delete()
         .eq('id', trackId);
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
       toast({
         title: 'Track Deleted',
         description: 'Track has been deleted successfully.',
       });
-      
+
       fetchTracks();
     } catch (error) {
       console.error('Delete error:', error);
@@ -143,9 +149,9 @@ export default function ArtistDashboard() {
   };
 
   const formatDuration = (seconds: number | null) => {
-    if (!seconds) return 'Unknown';
+    if (seconds === null || isNaN(seconds)) return 'Unknown';
     const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
+    const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
@@ -158,7 +164,6 @@ export default function ArtistDashboard() {
           <div className="mobile-container py-4 flex items-center justify-between">
             <div className="flex items-center">
               <Logo size="md" />
-              <span className="text-lg font-semibold ml-2">Spillrix Distribution</span>
             </div>
             <div className="flex items-center gap-2 md:gap-4">
               <span className="hidden sm:inline text-sm text-muted-foreground">Welcome, {profile?.name}</span>
@@ -254,7 +259,7 @@ export default function ArtistDashboard() {
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              {formatDuration(track.duration)}
+                              {formatDuration(durations[track.id] ?? track.duration)}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -265,9 +270,10 @@ export default function ArtistDashboard() {
                           </TableCell>
                           <TableCell>{getStatusBadge(track.status)}</TableCell>
                           <TableCell>
-                            <AudioPlayer 
-                              src={track.music_file_url}
+                            <AudioPlayerWithUrl 
+                              filePath={track.music_file_url || ''}
                               title={track.title}
+                              onDurationChange={(d) => setDurations(prev => ({...prev, [track.id]: d}))}
                               className="min-w-[250px] md:min-w-[200px]"
                             />
                           </TableCell>
